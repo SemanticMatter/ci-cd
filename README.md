@@ -6,13 +6,13 @@ They are mainly for usage with modern Python package repositories.
 
 Available workflows:
 
-- [CD - Release](#cd---release-cdreleaseyml)
+- [CD - Release](#cd---release-cd_releaseyml)
 
 ## Usage
 
 See the [GitHub Docs](https://docs.github.com/en/actions/using-workflows/reusing-workflows#calling-a-reusable-workflow) on the topic of calling a reusable workflow to understand how one can incoporate one of these workflows in your workflow.
 
-Example (using [CD - Release](#cd---release-cdreleaseyml)):
+Example (using [CD - Release](#cd---release-cd_releaseyml)):
 
 ```yaml
 name: CD - Publish
