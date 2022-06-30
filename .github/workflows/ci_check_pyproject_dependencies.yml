@@ -83,7 +83,7 @@ jobs:
           PR_BODY_FILE=.tmp_pr-body_${{ github.run_id }}_${{ github.run_number }}_${{ github.run_attempt }}.txt
           echo "PR_BODY_FILE=${PR_BODY_FILE}" >> $GITHUB_ENV
 
-          echo -e "### Update dependencies (\`pyproject.toml\`)\n\nAutomatically created PR based on the [\`ci_check_pyproject_dependencies.yml\` workflow](https://github.com/CasperWA/gh-actions/blob/main/.github/workflows/ci_check_pyproject_dependencies.yml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions)." > ${PR_BODY_FILE}
+          echo -e "### Update dependencies (\`pyproject.toml\`)\n\nAutomatically created PR based on the ['CI - Check dependencies' workflow](https://github.com/CasperWA/gh-actions#ci---check-dependencies-ci_check_pyproject_dependenciesyml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions)." > ${PR_BODY_FILE}
           echo "Using default PR body."
           echo "REMOVE_PR_BODY_FILE=true" >> $GITHUB_ENV
         else
@@ -99,7 +99,7 @@ jobs:
       with:
         template: ${{ env.PR_BODY_FILE }}
 
-    - name: Remove PR
+    - name: Remove temporary PR body file
       if: env.UPDATE_DEPS == 'true' && env.REMOVE_PR_BODY_FILE == 'true'
       run: rm -f "${{ env.PR_BODY_FILE }}"
 
