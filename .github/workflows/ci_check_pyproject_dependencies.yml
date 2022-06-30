@@ -30,7 +30,7 @@ on:
         description: "Relative path to PR body file from the root of the repository. Example: `'.github/utils/pr_body_deps_check.txt'`."
         required: false
         type: string
-        default: ".github/utils/pyproject_toml_update_pr_body.txt"
+        default: ""
     secrets:
       release_PAT:
         description: "A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`."
