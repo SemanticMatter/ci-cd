@@ -101,8 +101,8 @@ jobs:
       with:
         token: ${{ secrets.release_PAT || secrets.GITHUB_TOKEN }}
         commit-message: Check & update dependencies in `pyproject.toml`
-        committer: "${{ env.GIT_USER_NAME }} <${{ env.GIT_USER_EMAIL }}>"
-        author: "${{ env.GIT_USER_NAME }} <${{ env.GIT_USER_EMAIL }}>"
+        committer: "${{ inputs.git_username }} <${{ inputs.git_email }}>"
+        author: "${{ inputs.git_username }} <${{ inputs.git_email }}>"
         branch: ci/update-pyproject
         delete-branch: true
         title: "[Auto-generated] Check & update dependencies (`pyproject.toml`)"
