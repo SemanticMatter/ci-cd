@@ -13,6 +13,10 @@ Available workflows:
 
 See the [GitHub Docs](https://docs.github.com/en/actions/using-workflows/reusing-workflows#calling-a-reusable-workflow) on the topic of calling a reusable workflow to understand how one can incoporate one of these workflows in your workflow.
 
+... note
+  Workflow-level set `env` context variables cannot be used when setting input values for the called workflow.
+  See the [GitHub documentation](https://docs.github.com/en/actions/learn-github-actions/contexts#env-context) for more information on the `env` context.
+
 Example (using [CD - Release](#cd---release-cd_releaseyml)):
 
 ```yaml
@@ -23,20 +27,15 @@ on:
     types:
     - published
 
-env:
-  PUBLISH_UPDATE_BRANCH: stable
-  GIT_USER_NAME: "Casper Welzel Andersen"
-  GIT_USER_EMAIL: "CasperWA@github.com"
-
 jobs:
   publish:
     name: Publish package and documentation
     uses: CasperWA/gh-actions/.github/workflows/cd_release.yml@main
     if: github.repository == 'CasperWA/my-py-package' && startsWith(github.ref, 'refs/tags/v')
     with:
-      git_username: ${{ env.GIT_USER_NAME }}
-      git_email: ${{ env.GIT_USER_EMAIL }}
-      release_branch: ${{ env.PUBLISH_UPDATE_BRANCH }}
+      git_username: "Casper Welzel Andersen"
+      git_email: "CasperWA@github.com"
+      release_branch: stable
       install_extras: "[dev,build]"
       doc_extras: "[docs]"
       update_docs: true
