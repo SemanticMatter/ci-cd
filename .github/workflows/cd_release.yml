@@ -69,7 +69,7 @@ jobs:
       run: |
         python -m pip install -U pip
         pip install -U setuptools wheel build
-        pip install -e .${{ inputs.install_extras }}
+        pip install .${{ inputs.install_extras }}
 
     - name: Update changelog
       uses: CharMixer/auto-changelog-action@v1

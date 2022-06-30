@@ -25,7 +25,7 @@ on:
 
 env:
   PUBLISH_UPDATE_BRANCH: stable
-  GIT_USER_NAME: "Casper W. Andersen"
+  GIT_USER_NAME: "Casper Welzel Andersen"
   GIT_USER_EMAIL: "CasperWA@github.com"
 
 jobs:
