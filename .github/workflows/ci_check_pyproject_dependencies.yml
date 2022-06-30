@@ -1,0 +1,113 @@
+name: CI - Check dependencies
+
+on:
+  workflow_call:
+    inputs:
+      git_username:
+        description: "A git username (used to set the 'user.name' config option)."
+        required: true
+        type: string
+      git_email:
+        description: "A git user's email address (used to set the 'user.email' config option)."
+        required: true
+        type: string
+      permanent_dependencies_branch:
+        description: "The branch name for the permanent dependency updates branch."
+        required: false
+        type: string
+        default: "ci/dependency-updates"
+      python_version:
+        description: "The Python version to use for the workflow."
+        required: false
+        type: string
+        default: "3.9"
+      install_extras:
+        description: "Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces. Example: `'[dev,release]'`."
+        required: false
+        type: string
+        default: ""
+      pr_body_file:
+        description: "Relative path to PR body file from the root of the repository. Example: `'.github/utils/pr_body_deps_check.txt'`."
+        required: false
+        type: string
+        default: ".github/utils/pyproject_toml_update_pr_body.txt"
+    secrets:
+      release_PAT:
+        description: "A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`."
+        required: false
+
+jobs:
+  check-dependencies:
+    name: Check & update dependencies in `pyproject.toml`
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ inputs.permanent_dependencies_branch }}
+        fetch-depth: 0
+
+    - name: Set up Python ${{ inputs.python_version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: "${{ inputs.python_version }}"
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install -U pip
+        pip install -U setuptools wheel
+        pip install -e .${{ inputs.install_extras }}
+
+    - name: Set up git user
+      run: |
+        git config --global user.name "${{ inputs.git_username }}"
+        git config --global user.email "${{ inputs.git_email }}"
+
+    - name: Run invoke task
+      run: |
+        invoke update-deps
+
+        if [ -n "$(git status --porcelain pyproject.toml)" ]; then
+          echo "UPDATE_DEPS=true" >> $GITHUB_ENV
+          git add pyproject.toml
+          git commit -m "Update dependencies"
+        else
+          echo "UPDATE_DEPS=false" >> $GITHUB_ENV
+        fi
+
+    - name: Set PR body
+      if: env.UPDATE_DEPS == 'true'
+      run: |
+        PR_BODY=${{ inputs.pr_body_file }}
+        if [ -f ${PR_BODY} ]; then
+          echo "Using found PR body text file at ${{ inputs.pr_body_file }}."
+        else
+          echo -e "### Update dependencies (`pyproject.toml`)\n\nAutomatically created PR based on the [`ci_check_pyproject_dependencies.yml` workflow](https://github.com/CasperWA/gh-actions/blob/main/.github/workflows/ci_check_pyproject_dependencies.yml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions)." > ${PR_BODY}
+          echo "Using default PR body."
+        fi
+
+    - name: Fetch PR body
+      if: env.UPDATE_DEPS == 'true'
+      id: pr_body
+      uses: chuhlomin/render-template@v1.5
+      with:
+        template: ${{ inputs.pr_body_file }}
+
+    - name: Create PR
+      if: env.UPDATE_DEPS == 'true'
+      id: cpr
+      uses: peter-evans/create-pull-request@v4
+      with:
+        token: ${{ secrets.release_PAT || secrets.GITHUB_TOKEN }}
+        commit-message: Check & update dependencies in `pyproject.toml`
+        committer: "${{ env.GIT_USER_NAME }} <${{ env.GIT_USER_EMAIL }}>"
+        author: "${{ env.GIT_USER_NAME }} <${{ env.GIT_USER_EMAIL }}>"
+        branch: ci/update-pyproject
+        delete-branch: true
+        title: "[Auto-generated] Check & update dependencies (`pyproject.toml`)"
+        body: ${{ steps.pr_body.outputs.result }}
+        labels: CI/CD
+
+    - name: Information
+      run: 'echo "${{ steps.cpr.outputs.pull-request-operation }} PR #${{ steps.cpr.outputs.pull-request-number }}: ${{ steps.cpr.outputs.pull-request-url }}"'

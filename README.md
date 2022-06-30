@@ -7,6 +7,7 @@ They are mainly for usage with modern Python package repositories.
 Available workflows:
 
 - [CD - Release](#cd---release-cd_releaseyml)
+- [CI - Check dependencies](#ci---check-dependencies-ci_check_pyproject_dependenciesyml)
 
 ## Usage
 
@@ -68,18 +69,51 @@ The repository contains the following:
 
 | **Name** | **Descriptions** | **Required** | **Default** | **Type** |
 |:--- |:--- |:---:|:---:|:---:|
-| git_username | A git username (used to set the 'user.name' config option). | **_Yes_** | | _string_ |
-| git_email | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
-| release_branch | The branch name to release/publish from. | No | main | _string_ |
+| `git_username` | A git username (used to set the 'user.name' config option). | **_Yes_** | | _string_ |
+| `git_email` | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
+| `release_branch` | The branch name to release/publish from. | No | main | _string_ |
 | install_extras | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Example: `'[dev,release]'`. | No | _Empty string_ | _string_ |
-| python_version | The Python version to use for the workflow. | No | 3.9 | _string_ |
-| update_docs | Whether or not to also run the 'docs' workflow job. | No | `false` | _boolean_ |
-| doc_extras | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Note, if this is empty, 'install_extras' will be used as a fallback.</br></br>Example: `'[docs]'`. | No | _Empty string_ | _string_ |
-| build_cmd | The package build command, e.g., 'flit build' or 'python -m build' (default). | No | `python -m build` | _string_ |
+| `python_version` | The Python version to use for the workflow. | No | 3.9 | _string_ |
+| `update_docs` | Whether or not to also run the 'docs' workflow job. | No | `false` | _boolean_ |
+| `doc_extras` | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Note, if this is empty, 'install_extras' will be used as a fallback.</br></br>Example: `'[docs]'`. | No | _Empty string_ | _string_ |
+| `build_cmd` | The package build command, e.g., `'flit build'` or `'python -m build'` (default). | No | `python -m build` | _string_ |
 
 ### Secrets
 
 | **Name** | **Descriptions** | **Required** |
 |:--- |:--- |:---:|
-| PyPI_token | A PyPI token for publishing the built package to PyPI. | **_Yes_** |
-| release_PAT | A personal access token (PAT) with rights to update the 'release_branch'. This will fallback on `GITHUB_TOKEN`. | No |
+| `PyPI_token` | A PyPI token for publishing the built package to PyPI. | **_Yes_** |
+| `release_PAT` | A personal access token (PAT) with rights to update the `release_branch`. This will fallback on `GITHUB_TOKEN`. | No |
+
+## CI - Check dependencies (`ci_check_pyproject_dependencies.yml`)
+
+This workflow runs an [Invoke](https://pyinvoke.org) task to check dependencies in a `pyproject.toml` file.
+
+The reason for having this workflow and not using [Dependabot](https://github.com/dependabot/dependabot-core) is because it seems to not function properly with this use case.
+
+<!-- markdownlint-disable-next-line MD024 -->
+### Expectations
+
+The repository contains the following:
+
+- (**required**) A root `tasks.py` file with invoke task `update-deps`.
+- (optional) A PR body text file, the path to which can be specified in the `pr_body_file` input.
+
+<!-- markdownlint-disable-next-line MD024 -->
+### Inputs
+
+| **Name** | **Descriptions** | **Required** | **Default** | **Type** |
+|:--- |:--- |:---:|:---:|:---:|
+| `git_username` | A git username (used to set the 'user.name' config option). | **_Yes_** | | _string_ |
+| `git_email` | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
+| `permanent_dependenices_branch` | The branch name for the permanent dependency updates branch. | No | ci/dependency-updates | _string_ |
+| `python_version` | The Python version to use for the workflow. | No | 3.9 | _string_ |
+| `install_extras` | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Example: `'[dev,release]'`. | No | _Empty string_ | _string_ |
+| `pr_body_file` | Relative path to PR body file from the root of the repository.</br></br>Example: `'.github/utils/pr_body_deps_check.txt'`. | No | .github/utils/pyproject_toml_update_pr_body.txt | _string_ |
+
+<!-- markdownlint-disable-next-line MD024 -->
+### Secrets
+
+| **Name** | **Descriptions** | **Required** |
+|:--- |:--- |:---:|
+| `release_PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
