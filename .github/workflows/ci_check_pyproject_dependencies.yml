@@ -79,11 +79,10 @@ jobs:
     - name: Set PR body
       if: env.UPDATE_DEPS == 'true'
       run: |
-        PR_BODY=${{ inputs.pr_body_file }}
-        if [ -f ${PR_BODY} ]; then
+        if [ -f ${{ inputs.pr_body_file }} ]; then
           echo "Using found PR body text file at ${{ inputs.pr_body_file }}."
         else
-          echo -e "### Update dependencies (`pyproject.toml`)\n\nAutomatically created PR based on the [`ci_check_pyproject_dependencies.yml` workflow](https://github.com/CasperWA/gh-actions/blob/main/.github/workflows/ci_check_pyproject_dependencies.yml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions)." > ${PR_BODY}
+          echo -e "### Update dependencies (\`pyproject.toml\`)\n\nAutomatically created PR based on the [\`ci_check_pyproject_dependencies.yml\` workflow](https://github.com/CasperWA/gh-actions/blob/main/.github/workflows/ci_check_pyproject_dependencies.yml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions)." > /tmp/pr_body.txt
           echo "Using default PR body."
         fi
 
@@ -92,7 +91,7 @@ jobs:
       id: pr_body
       uses: chuhlomin/render-template@v1.5
       with:
-        template: ${{ inputs.pr_body_file }}
+        template: ${{ inputs.pr_body_file || '/tmp/pr_body.txt' }}
 
     - name: Create PR
       if: env.UPDATE_DEPS == 'true'
