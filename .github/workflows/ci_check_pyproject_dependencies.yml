@@ -88,6 +88,7 @@ jobs:
           echo "REMOVE_PR_BODY_FILE=true" >> $GITHUB_ENV
         else
           echo "Using found PR body text file at ${{ inputs.pr_body_file }}."
+          echo "PR_BODY_FILE=${{ inputs.pr_body_file }}" >> $GITHUB_ENV
           echo "REMOVE_PR_BODY_FILE=false" >> $GITHUB_ENV
         fi
 
@@ -96,7 +97,7 @@ jobs:
       id: pr_body
       uses: chuhlomin/render-template@v1.5
       with:
-        template: ${{ inputs.pr_body_file }}
+        template: ${{ env.PR_BODY_FILE }}
 
     - name: Remove PR
       if: env.UPDATE_DEPS == 'true' && env.REMOVE_PR_BODY_FILE == 'true'
