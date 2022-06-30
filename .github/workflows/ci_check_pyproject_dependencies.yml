@@ -97,7 +97,7 @@ jobs:
         if [ -n "$(git -C ${MAIN_DIR} status --porcelain pyproject.toml)" ]; then
           echo "UPDATE_DEPS=true" >> $GITHUB_ENV
           git -C ${MAIN_DIR} add pyproject.toml
-          git C ${MAIN_DIR} commit -m "Update dependencies in \`pyproject.toml\`"
+          git -C ${MAIN_DIR} commit -m "Update dependencies in \`pyproject.toml\`"
         else
           echo "UPDATE_DEPS=false" >> $GITHUB_ENV
         fi
