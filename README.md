@@ -13,9 +13,8 @@ Available workflows:
 
 See the [GitHub Docs](https://docs.github.com/en/actions/using-workflows/reusing-workflows#calling-a-reusable-workflow) on the topic of calling a reusable workflow to understand how one can incoporate one of these workflows in your workflow.
 
-... note
-  Workflow-level set `env` context variables cannot be used when setting input values for the called workflow.
-  See the [GitHub documentation](https://docs.github.com/en/actions/learn-github-actions/contexts#env-context) for more information on the `env` context.
+> **Note**: Workflow-level set `env` context variables cannot be used when setting input values for the called workflow.
+> See the [GitHub documentation](https://docs.github.com/en/actions/learn-github-actions/contexts#env-context) for more information on the `env` context.
 
 Example (using [CD - Release](#cd---release-cd_releaseyml)):
 
