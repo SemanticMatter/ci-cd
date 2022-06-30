@@ -67,7 +67,7 @@ def setver(_, package_dir, version, repo_folder="main"):
 
     update_file(
         init_file,
-        (r'__version__ = (\'|").*(\'|")', f'__version__ = "{version}"'),
+        (r'__version__ *= *(\'|").*(\'|")', f'__version__ = "{version}"'),
     )
 
     print(f"Bumped version for {package_dir} to {version}.")

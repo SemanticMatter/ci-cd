@@ -39,6 +39,7 @@ jobs:
       doc_extras: "[docs]"
       update_docs: true
       build_cmd: "flit build"
+      tag_message_file: ".github/utils/release_tag_msg.txt"
     secrets:
       PyPI_token: ${{ secrets.PYPI_TOKEN }}
       release_PAT: ${{ secrets.PAT }}
@@ -60,13 +61,13 @@ This workflow should _only_ be used for releasing a single modern Python package
 
 The repository contains the following:
 
-- (**required**) A root `tasks.py` file with invoke tasks, one being `setver`, which accepts a `--version` option.
-- (optional) A release tag message text file located at `.github/utils/release_tag_msg.txt`.
+- (**required**) A Python package root `__init__.py` file with `__version__` defined.
 
 ### Inputs
 
 | **Name** | **Descriptions** | **Required** | **Default** | **Type** |
 |:--- |:--- |:---:|:---:|:---:|
+| `package_dir` | Path to the Python package directory relative to the repository directory.</br></br>Example: `'src/my_package'`. | **_Yes_** | | _string_ |
 | `git_username` | A git username (used to set the 'user.name' config option). | **_Yes_** | | _string_ |
 | `git_email` | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
 | `release_branch` | The branch name to release/publish from. | No | main | _string_ |
@@ -75,6 +76,7 @@ The repository contains the following:
 | `update_docs` | Whether or not to also run the 'docs' workflow job. | No | `false` | _boolean_ |
 | `doc_extras` | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Note, if this is empty, 'install_extras' will be used as a fallback.</br></br>Example: `'[docs]'`. | No | _Empty string_ | _string_ |
 | `build_cmd` | The package build command, e.g., `'flit build'` or `'python -m build'` (default). | No | `python -m build` | _string_ |
+| `tag_message_file` | Relative path to a release tag message file from the root of the repository. Example: `'.github/utils/release_tag_msg.txt'`. | No | _Empty string_ | _string_ |
 
 ### Secrets
 
@@ -97,8 +99,7 @@ The reason for having this workflow and not using [Dependabot](https://github.co
 
 The repository contains the following:
 
-- (**required**) A root `tasks.py` file with invoke task `update-deps`.
-- (optional) A PR body text file, the path to which can be specified in the `pr_body_file` input.
+- (**required**) A repository root `pyproject.toml` file with the Python package's dependencies.
 
 <!-- markdownlint-disable-next-line MD024 -->
 ### Inputs

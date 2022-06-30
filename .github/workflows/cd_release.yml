@@ -3,11 +3,10 @@ name: CD - Release
 on:
   workflow_call:
     inputs:
-      release_branch:
-        description: "The branch name to release/publish from."
-        required: false
+      package_dir:
+        description: "Path to the Python package directory relative to the repository directory. Example: `'src/my_package'`."
+        required: true
         type: string
-        default: main
       git_username:
         description: "A git username (used to set the 'user.name' config option)."
         required: true
@@ -16,6 +15,11 @@ on:
         description: "A git user's email address (used to set the 'user.email' config option)."
         required: true
         type: string
+      release_branch:
+        description: "The branch name to release/publish from."
+        required: false
+        type: string
+        default: main
       install_extras:
         description: "Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces. Example: `'[dev,release]'`."
         required: false
@@ -41,6 +45,11 @@ on:
         required: false
         type: string
         default: "python -m build"
+      tag_message_file:
+        description: "Relative path to a release tag message file from the root of the repository. Example: `'.github/utils/release_tag_msg.txt'`."
+        required: false
+        type: string
+        default: ""
     secrets:
       PyPI_token:
         description: "A PyPI token for publishing the built package to PyPI."
@@ -55,10 +64,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout ${{ github.repository }}
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
+        path: main
+
+    - name: Checkout CasperWA/gh-actions
+      uses: actions/checkout@v3
+      with:
+        repository: CasperWA/gh-actions
+        ref: main
+        path: gh-actions
 
     - name: Set up Python ${{ inputs.python_version }}
       uses: actions/setup-python@v4
@@ -69,7 +86,8 @@ jobs:
       run: |
         python -m pip install -U pip
         pip install -U setuptools wheel build
-        pip install .${{ inputs.install_extras }}
+        pip install ./main${{ inputs.install_extras }}
+        pip install -r ./gh-actions/requirements.txt
 
     - name: Update changelog
       uses: CharMixer/auto-changelog-action@v1
@@ -86,26 +104,33 @@ jobs:
       run: |
         REF=${{ github.ref }}
         REF=${REF#refs/tags/}
-        invoke setver --version="${REF}"
 
-        git commit -am "Release ${REF} - Changelog"
+        invoke setver --version="${REF}" --repo-folder=main --package-dir=${{ inputs.package_dir }}
 
-        TAG_MSG=.github/utils/release_tag_msg.txt
-        if [ -f ${TAG_MSG} ]; then
-          echo "Using found release tag message text file."
-        else
-          echo -e "TAG_NAME\n\nThe full release changelog can be seen in the\n[repository source file](https://github.com/${{ github.repository }}/blob/TAG_NAME/CHANGELOG.md)." > ${TAG_MSG}
+        MAIN_DIR="${{ github.workspace }}/main"
+
+        git -C ${MAIN_DIR} commit -am "Release ${REF} - Changelog"
+
+        if [ -z "${{ inputs.tag_message_file }}" ] || [ ! -f "main/${{ inputs.tag_message_file }}" ]; then
+          TAG_MSG_FILE=.tmp_tag-msg_${{ github.run_id }}_${{ github.run_number }}_${{ github.run_attempt }}.txt
+
+          echo -e "TAG_NAME\n\nThe full release changelog can be seen in the\n[repository source file](https://github.com/${{ github.repository }}/blob/TAG_NAME/CHANGELOG.md)." > ${TAG_MSG_FILE}
           echo "Using default release tag message."
+        else
+          echo "Using found release tag message text file at ${{ inputs.tag_message_file }}."
+          TAG_MSG_FILE=main/${{ inputs.tag_message_file }}
         fi
 
-        sed -i "s|TAG_NAME|${REF}|" "${TAG_MSG}"
-        git tag -af -F "${TAG_MSG}" ${REF}
+        sed -i "s|TAG_NAME|${REF}|" "${TAG_MSG_FILE}"
+        git -C ${MAIN_DIR} tag -af -F "${TAG_MSG_FILE}" ${REF}
+      working-directory: ./gh-actions
 
     - name: Build source distribution
       run: |
         # First, clean the git tree
         git checkout -- .
         ${{ inputs.build_cmd }}
+      working-directory: ./main
 
     - name: Update '${{ inputs.release_branch }}'
       uses: CasperWA/push-protected@v2
@@ -116,9 +141,11 @@ jobs:
         force: true
         tags: true
         unprotect_reviews: true
+        entrypoint: "cd main && /entrypoint.sh"
 
     - name: Get tagged versions
       run: echo "PREVIOUS_VERSION=$(git tag -l --sort -version:refname | sed -n 2p)" >> $GITHUB_ENV
+      working-directory: ./main
 
     - name: Create release-specific changelog
       uses: CharMixer/auto-changelog-action@v1
@@ -141,6 +168,7 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.PyPI_token }}
+        packages_dir: main/dist/
 
   docs:
     name: Deploy release documentation
@@ -149,7 +177,7 @@ jobs:
     if: inputs.update_docs
 
     steps:
-    - name: Checkout repository
+    - name: Checkout ${{ github.repository }}
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
@@ -164,7 +192,7 @@ jobs:
       run: |
         python -m pip install -U pip
         pip install -U setuptools wheel flit
-        pip install -U -e .${{ inputs.doc_extras || inputs.install_extras }}
+        pip install -e .${{ inputs.doc_extras || inputs.install_extras }}
 
     - name: Set up git user
       run: |

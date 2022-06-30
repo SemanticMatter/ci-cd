@@ -75,8 +75,8 @@ jobs:
       run: |
         python -m pip install -U pip
         pip install -U setuptools wheel
-        pip install main${{ inputs.install_extras }}
-        pip install -r gh-actions/requirements.txt
+        pip install ./main${{ inputs.install_extras }}
+        pip install -r ./gh-actions/requirements.txt
 
     - name: Set up git user
       run: |
