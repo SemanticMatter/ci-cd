@@ -50,6 +50,11 @@ on:
         required: false
         type: string
         default: ""
+      test:
+        description: "Whether to use the TestPyPI repository index instead of PyPI."
+        required: false
+        type: boolean
+        default: false
     secrets:
       PyPI_token:
         description: "A PyPI token for publishing the built package to PyPI."
@@ -163,7 +168,17 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Publish package to TestPyPI
+      if: inputs.test
+      uses: pypa/gh-action-pypi-publish@v1.5.0
+      with:
+        user: __token__
+        password: ${{ secrets.PyPI_token }}
+        packages_dir: main/dist/
+        repository_url: https://test.pypi.org/legacy/
+
     - name: Publish package to PyPI
+      if: "! inputs.test"
       uses: pypa/gh-action-pypi-publish@v1.5.0
       with:
         user: __token__

@@ -71,12 +71,13 @@ The repository contains the following:
 | `git_username` | A git username (used to set the 'user.name' config option). | **_Yes_** | | _string_ |
 | `git_email` | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
 | `release_branch` | The branch name to release/publish from. | No | main | _string_ |
-| install_extras | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Example: `'[dev,release]'`. | No | _Empty string_ | _string_ |
+| `install_extras` | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Example: `'[dev,release]'`. | No | _Empty string_ | _string_ |
 | `python_version` | The Python version to use for the workflow. | No | 3.9 | _string_ |
 | `update_docs` | Whether or not to also run the 'docs' workflow job. | No | `false` | _boolean_ |
 | `doc_extras` | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Note, if this is empty, 'install_extras' will be used as a fallback.</br></br>Example: `'[docs]'`. | No | _Empty string_ | _string_ |
 | `build_cmd` | The package build command, e.g., `'flit build'` or `'python -m build'` (default). | No | `python -m build` | _string_ |
-| `tag_message_file` | Relative path to a release tag message file from the root of the repository. Example: `'.github/utils/release_tag_msg.txt'`. | No | _Empty string_ | _string_ |
+| `tag_message_file` | Relative path to a release tag message file from the root of the repository.</br></br>Example: `'.github/utils/release_tag_msg.txt'`. | No | _Empty string_ | _string_ |
+| `test` | Whether to use the TestPyPI repository index instead of PyPI. | No | `false` | _boolean_ |
 
 ### Secrets
 
