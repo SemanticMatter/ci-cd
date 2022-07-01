@@ -131,7 +131,7 @@ jobs:
           PR_BODY_FILE=.tmp_pr-body_${{ github.run_id }}_${{ github.run_number }}_${{ github.run_attempt }}.txt
           echo "PR_BODY_FILE=${PR_BODY_FILE}" >> $GITHUB_ENV
 
-          echo -e "### Update dependencies\n\nAutomatically created PR from [`${{ inputs.permanent_dependencies_branch }}`](https://github.com/${{ github.repository }}/tree/${{ inputs.permanent_dependencies_branch }}).\n\nThe PR is based on the ['CI - Update dependencies PR' workflow](https://github.com/CasperWA/gh-actions#ci---update-dependencies-pr-ci_update_dependenciesyml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions).\n\n#### To do\n\n- [ ] Check that the diff is sensible, and that tests and builds pass with the new dependency versions.\n${{ inputs.extra_to_dos }}" > ${PR_BODY_FILE}
+          echo -e "### Update dependencies\n\nAutomatically created PR from [\`${{ inputs.permanent_dependencies_branch }}\`](https://github.com/${{ github.repository }}/tree/${{ inputs.permanent_dependencies_branch }}).\n\nThe PR is based on the ['CI - Update dependencies PR' workflow](https://github.com/CasperWA/gh-actions#ci---update-dependencies-pr-ci_update_dependenciesyml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions).\n\n#### To do\n\n- [ ] Check that the diff is sensible, and that tests and builds pass with the new dependency versions.\n${{ inputs.extra_to_dos }}" > ${PR_BODY_FILE}
           echo "Using default PR body."
         else
           echo "Using found PR body text file at ${{ inputs.pr_body_file }}."

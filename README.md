@@ -164,6 +164,10 @@ As a "bonus" this workflow supports updating [pre-commit](https://pre-commit.com
 
 > **Warning**: If a PAT is not passed through for the `release_PAT` secret and `GITHUB_TOKEN` is used, beware that any other CI/CD jobs that run for, e.g., pull request events, may not run since `GITHUB_TOKEN`-generated PRs are designed to not start more workflows to avoid escalation.
 > Hence, if it is important to run CI/CD workflows for pull requests, consider passing a PAT as a secret to this workflow represented by the `release_PAT` secret.
+<!-- markdownlint-disable-next-line MD028 -->
+
+> **Important**: If this is to be used together with the [CI/CD - New updates to default branch](#cicd---new-updates-to-default-branch-ci_cd_updated_default_branchyml) workflow, the `pr_body_file` supplied (if any) should be immutable within the first 8 lines, i.e., no check boxes or similar in the first 8 lines.
+> Indeed, it is recommended to not supply a `pr_body_file` in this case.
 
 <!-- markdownlint-disable-next-line MD024 -->
 ### Expectations

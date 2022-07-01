@@ -1,0 +1,173 @@
+name: CI/CD - New updates to default branch
+
+on:
+  workflow_call:
+    inputs:
+      git_username:
+        description: "A git username (used to set the 'user.name' config option)."
+        required: true
+        type: string
+      git_email:
+        description: "A git user's email address (used to set the 'user.email' config option)."
+        required: true
+        type: string
+      permanent_dependencies_branch:
+        description: "The branch name for the permanent dependency updates branch."
+        required: false
+        type: string
+        default: "ci/dependency-updates"
+      default_repo_branch:
+        description: "The branch name of the repository's default branch. More specifically, the branch that triggered this workflow."
+        required: false
+        type: string
+        default: main
+      update_dependencies_pr_body_file:
+        description: "Relative path to a PR body file from the root of the repository, which is used in the 'CI - Update dependencies' workflow, if used. Example: `'.github/utils/pr_body_update_deps.txt'`."
+        required: false
+        type: string
+        default: ""
+      python_version:
+        description: "The Python version to use for the workflow when building the documentation."
+        required: false
+        type: string
+        default: "3.9"
+      doc_extras:
+        description: "Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces. Example: `'[docs]'`."
+        required: false
+        type: string
+        default: ""
+    secrets:
+      release_PAT:
+        description: "A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`."
+        required: false
+
+jobs:
+  update-dependencies-branch:
+    name: Update permanent dependencies branch
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout ${{ github.repository }}
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ inputs.permanent_dependencies_branch }}
+        fetch-depth: 0
+
+    - name: Set up git config
+      run: |
+        git config --global user.name "${{ inputs.git_username }}"
+        git config --global user.email "${{ inputs.git_email }}"
+
+    - name: Get PR body
+      run: |
+        if [ -z "${{ inputs.update_dependencies_pr_body_file }}" ] || [ ! -f "main/${{ inputs.update_dependencies_pr_body_file }}" ]; then
+          PR_BODY_FILE=.tmp_pr-body_${{ github.run_id }}_${{ github.run_number }}_${{ github.run_attempt }}.txt
+          echo "PR_BODY_FILE=${PR_BODY_FILE}" >> $GITHUB_ENV
+
+          echo -e "### Update dependencies\n\nAutomatically created PR from [\`${{ inputs.permanent_dependencies_branch }}\`](https://github.com/${{ github.repository }}/tree/${{ inputs.permanent_dependencies_branch }}).\n\nThe PR is based on the ['CI - Update dependencies PR' workflow](https://github.com/CasperWA/gh-actions#ci---update-dependencies-pr-ci_update_dependenciesyml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions).\n\n#### To do\n" > ${PR_BODY_FILE}
+          echo "Using default PR body (similar to the one used in the 'CI - Update dependencies' workflow)."
+        else
+          echo "Using found PR body text file at ${{ inputs.update_dependencies_pr_body_file }}."
+          echo "PR_BODY_FILE=${{ inputs.update_dependencies_pr_body_file }}" >> $GITHUB_ENV
+        fi
+
+    - name: Update '${{ inputs.permanent_dependencies_branch }}'
+      run: |
+        git fetch origin
+
+        LATEST_PR_BODY="$(gh api /repos/${{ github.repository}}/pulls -X GET -f state=closed -f per_page=1 -f sort=updated -f direction=desc --jq '.[].body')"
+        cat ${{ env.PR_BODY_FILE }} | head -8 > .tmp_file.txt
+        if [ -z "$(printf '%s\n' "${LATEST_PR_BODY}" | head -8 | diff - .tmp_file.txt --strip-trailing-cr)" ]; then
+          echo "The dependencies have just been updated! Reset to ${{ inputs.default_repo_branch }}."
+          git reset --hard origin/${{ inputs.default_repo_branch }}
+          echo "FORCE_PUSH=yes" >> $GITHUB_ENV
+        else
+          echo "Merge new updates to ${{ inputs.default_repo_branch }} into ${{ inputs.permanent_dependencies_branch }}"
+          git merge -m "Keep '${{ inputs.permanent_dependencies_branch }}' up-to-date with '${{ inputs.default_repo_branch }}'" origin/${{ inputs.default_repo_branch }}
+          echo "FORCE_PUSH=no" >> $GITHUB_ENV
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push to '${{ inputs.permanent_dependencies_branch }}'
+      uses: CasperWA/push-protected@v2
+      with:
+        token: ${{ secrets.release_PAT || secrets.GITHUB_TOKEN }}
+        branch: ${{ inputs.permanent_dependencies_branch }}
+        sleep: 15
+        force: ${{ env.FORCE_PUSH }}
+
+  deploy-docs:
+    name: Deploy `latest` documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Release check
+      run: |
+        COMMIT_MSG="$(gh api /repos/${{ github.repository}}/commits/${{ inputs.default_repo_branch }} --jq '.commit.message')"
+        if [[ "${COMMIT_MSG}" =~ ^Release\ v.*$ ]]; then
+          echo "In a release - do not run this job !"
+          echo "RELEASE_RUN=true" >> $GITHUB_ENV
+        else
+          echo "Not a release - update docs"
+          echo "RELEASE_RUN=false" >> $GITHUB_ENV
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Checkout ${{ github.repository }}
+      if: env.RELEASE_RUN == 'false'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        path: main
+
+    - name: Checkout CasperWA/gh-actions
+      if: env.RELEASE_RUN == 'false'
+      uses: actions/checkout@v3
+      with:
+        repository: CasperWA/gh-actions
+        ref: main
+        path: gh-actions
+
+    - name: Set up Python ${{ inputs.python_version }}
+      if: env.RELEASE_RUN == 'false'
+      uses: actions/setup-python@v4
+      with:
+        python-version: "${{ inputs.python_version }}"
+
+    - name: Install Python dependencies
+      if: env.RELEASE_RUN == 'false'
+      run: |
+        python -m pip install --upgrade pip
+        pip install -U setuptools wheel
+        pip install .${{ inputs.doc_extras }}
+
+    - name: Set up git user
+      if: env.RELEASE_RUN == 'false'
+      run: |
+        git config --global user.name "${{ inputs.git_username }}"
+        git config --global user.email "${{ inputs.git_email }}"
+
+    - name: Check API Reference and landing page
+      if: env.RELEASE_RUN == 'false'
+      run: |
+        invoke create-api-reference-docs --pre-clean
+        invoke create-docs-index
+
+        if [ -n "$(git status --porcelain docs/api_reference docs/index.md)" ]; then
+          echo -e "\u274c Discrepancies found !"
+          echo -e "The following files in the documentation must be committed:"
+          git status --porcelain docs/api_reference docs/index.md
+          echo -e "\nRun:\n"
+          echo "    invoke create-api-reference-docs --pre-clean"
+          echo -e "    invoke create-docs-index\n"
+          echo "And commit the changed files."
+          exit 1
+        else
+          echo -e "\u2705 All good !"
+        fi
+
+    - name: Deploy documentation
+      if: env.RELEASE_RUN == 'false'
+      run: mike deploy --push --remote origin --branch gh-pages --update-aliases --config-file mkdocs.yml latest ${{ inputs.default_repo_branch }}
