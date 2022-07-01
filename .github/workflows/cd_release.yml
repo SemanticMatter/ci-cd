@@ -118,7 +118,7 @@ jobs:
         git -C ${MAIN_DIR} commit -am "Release ${REF} - Changelog"
 
         if [ -z "${{ inputs.tag_message_file }}" ] || [ ! -f "main/${{ inputs.tag_message_file }}" ]; then
-          TAG_MSG_FILE=.tmp_tag-msg_${{ github.run_id }}_${{ github.run_number }}_${{ github.run_attempt }}.txt
+          TAG_MSG_FILE=${{ github.workspace }}/.tmp_tag-msg_${{ github.run_id }}_${{ github.run_number }}_${{ github.run_attempt }}.txt
 
           echo -e "TAG_NAME\n\nThe full release changelog can be seen in the\n[repository source file](https://github.com/${{ github.repository }}/blob/TAG_NAME/CHANGELOG.md)." > ${TAG_MSG_FILE}
           echo "Using default release tag message."
