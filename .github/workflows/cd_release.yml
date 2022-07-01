@@ -219,5 +219,10 @@ jobs:
     - name: Deploy documentation
       run: |
         REF=${{ github.ref }}
-        mike deploy --push --remote origin --branch gh-pages --update-aliases --config-file mkdocs.yml ${REF#refs/tags/v} stable
-        mike deploy --push --remote origin --branch gh-pages --update-aliases --config-file mkdocs.yml latest ${{ inputs.release_branch }}
+        if [ "${{ inputs.test }}" == "true" ]; then
+          echo "Will here deploy documentation using 'mike', first one called '${REF#refs/tags/v}' with alias 'stable'"
+          echo "Then one called 'latest' with alias '${{ inputs.release_branch }}'"
+        else
+          mike deploy --push --remote origin --branch gh-pages --update-aliases --config-file mkdocs.yml ${REF#refs/tags/v} stable
+          mike deploy --push --remote origin --branch gh-pages --update-aliases --config-file mkdocs.yml latest ${{ inputs.release_branch }}
+        fi
