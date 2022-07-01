@@ -138,6 +138,11 @@ jobs:
         ${{ inputs.build_cmd }}
       working-directory: ./main
 
+    - name: Create new entrypoint.sh
+      run: |
+        echo -e "#!/bin/sh\n\ncd main\n/entrypoint.sh $*" > entrypoint_custom.sh
+        chmod +x entrypoint_custom.sh
+
     - name: Update '${{ inputs.release_branch }}'
       uses: CasperWA/push-protected@v2
       with:
@@ -148,7 +153,7 @@ jobs:
         tags: true
         unprotect_reviews: true
         debug: ${{ inputs.test }}
-        entrypoint: "/bin/sh -c \"cd main && /entrypoint.sh\""
+        entrypoint: "./entrypoint_custom.sh"
 
     - name: Get tagged versions
       run: echo "PREVIOUS_VERSION=$(git tag -l --sort -version:refname | sed -n 2p)" >> $GITHUB_ENV
