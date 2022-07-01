@@ -147,6 +147,7 @@ jobs:
         force: true
         tags: true
         unprotect_reviews: true
+        debug: ${{ inputs.test }}
         entrypoint: "/bin/sh -c \"cd main && /entrypoint.sh\""
 
     - name: Get tagged versions
