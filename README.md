@@ -7,6 +7,7 @@ They are mainly for usage with modern Python package repositories.
 Available workflows:
 
 - [CD - Release](#cd---release-cd_releaseyml)
+- [CI - Activate auto-merging for PRs](#ci---activate-auto-merging-for-prs-ci_automerge_prsyml)
 - [CI - Check dependencies](#ci---check-dependencies-ci_check_pyproject_dependenciesyml)
 
 ## Usage
@@ -88,6 +89,29 @@ The repository contains the following:
 |:--- |:--- |:---:|
 | `PyPI_token` | A PyPI token for publishing the built package to PyPI. | **_Yes_** |
 | `release_PAT` | A personal access token (PAT) with rights to update the `release_branch`. This will fallback on `GITHUB_TOKEN`. | No |
+
+## CI - Activate auto-merging for PRs (`ci_automerge_prs.yml`)
+
+Activate auto-merging for a PR.
+
+<!-- markdownlint-disable-next-line MD024 -->
+### Expectations
+
+The `release_PAT` secret must represent a user with the rights to activate auto-merging.
+
+This workflow can _only_ be called if the triggering event from the caller workflow is `pull_request_target`.
+
+<!-- markdownlint-disable-next-line MD024 -->
+### Inputs
+
+There are no inputs for this workflow.
+
+<!-- markdownlint-disable-next-line MD024 -->
+### Secrets
+
+| **Name** | **Descriptions** | **Required** |
+|:--- |:--- |:---:|
+| `release_PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
 
 ## CI - Check dependencies (`ci_check_pyproject_dependencies.yml`)
 
