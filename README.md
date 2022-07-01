@@ -9,6 +9,7 @@ Available workflows:
 - [CD - Release](#cd---release-cd_releaseyml)
 - [CI - Activate auto-merging for PRs](#ci---activate-auto-merging-for-prs-ci_automerge_prsyml)
 - [CI - Check dependencies](#ci---check-dependencies-ci_check_pyproject_dependenciesyml)
+- [CI - Update dependencies](#ci---update-dependencies-ci_update_dependenciesyml)
 
 ## Usage
 
@@ -142,6 +143,50 @@ The repository contains the following:
 | `pr_body_file` | Relative path to PR body file from the root of the repository.</br></br>Example: `'.github/utils/pr_body_deps_check.txt'`. | No | _Empty string_ | _string_ |
 | `fail_fast` | Whether the task to update dependencies should fail if any error occurs. | No | `false` | _boolean_ |
 | `pr_labels` | A comma separated list of strings of GitHub labels to use for the created PR. | No | _Empty string_ | _string_ |
+
+<!-- markdownlint-disable-next-line MD024 -->
+### Secrets
+
+| **Name** | **Descriptions** | **Required** |
+|:--- |:--- |:---:|
+| `release_PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
+
+## CI - Update dependencies (`ci_update_dependencies.yml`)
+
+This workflow creates a PR if there are any updates in the `permanent_dependencies_branch` branch that have not been included in the `default_repo_branch` branch.
+
+This workflow works nicely together with the [CI - Check dependencies](#ci---check-dependencies-ci_check_pyproject_dependenciesyml) workflow, and the same value for `permanent_dependencies_branch` should be used.
+In this way, this workflow can be called on a schedule to update the dependencies that have been merged into the `permanent_dependencies_branch` branch into the `default_repo_branch` branch.
+
+The main point of having this workflow is to have a single PR, which can be squash merged, to merge several dependency updates performed by [Dependabot](https://github.com/dependabot/dependabot-core) or similar.
+
+As a "bonus" this workflow supports updating [pre-commit](https://pre-commit.com) hooks.
+
+> **Warning**: If a PAT is not passed through for the `release_PAT` secret and `GITHUB_TOKEN` is used, beware that any other CI/CD jobs that run for, e.g., pull request events, may not run since `GITHUB_TOKEN`-generated PRs are designed to not start more workflows to avoid escalation.
+> Hence, if it is important to run CI/CD workflows for pull requests, consider passing a PAT as a secret to this workflow represented by the `release_PAT` secret.
+
+<!-- markdownlint-disable-next-line MD024 -->
+### Expectations
+
+There are no expectations of the repo when using this workflow.
+
+<!-- markdownlint-disable-next-line MD024 -->
+### Inputs
+
+| **Name** | **Descriptions** | **Required** | **Default** | **Type** |
+|:--- |:--- |:---:|:---:|:---:|
+| `git_username` | A git username (used to set the 'user.name' config option). | **_Yes_** | | _string_ |
+| `git_email` | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
+| `permanent_dependencies_branch` | The branch name for the permanent dependency updates branch. | No | ci/dependency-updates | _string_ |
+| `default_repo_branch` | The branch name of the repository's default branch. More specifically, the branch the PR should target. | No | main | _string_ |
+| `pr_body_file` | Relative path to PR body file from the root of the repository.</br></br>Example: `'.github/utils/pr_body_update_deps.txt'`. | No | _Empty string_ | _string_ |
+| `pr_labels` | A comma separated list of strings of GitHub labels to use for the created PR. | No | _Empty string_ | _string_ |
+<!-- markdownlint-disable-next-line MD038 -->
+| `extra_to_dos` | A multi-line string (insert `\n` to create line breaks) with extra 'to do' checks. Should start with `- [ ] `. | No | _Empty string_ | _string_ |
+| `update_pre-commit` | Whether or not to update pre-commit hooks as part of creating the PR. | No | `false` | _boolean_ |
+| `python_version` | The Python version to use for the workflow.</br></br>**Note**: This is only relevant if `update_pre-commit` is `true`. | No | 3.9 | _string_ |
+| `install_extras` | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Example: `'[dev,pre-commit]'`.</br></br>**Note**: This is only relevant if `update_pre-commit` is `true`. | No | _Empty string_ | _string_ |
+| `skip_pre-commit_hooks` | A comma-separated list of pre-commit hook IDs to skip when running `pre-commit` after updating hooks.</br></br>**Note**: This is only relevant if `update_pre-commit` is `true`. | No | _Empty string_ | _string_ |
 
 <!-- markdownlint-disable-next-line MD024 -->
 ### Secrets
