@@ -1,4 +1,4 @@
-name: CI/CD - New updates to 'main'
+name: CI - New updates to 'main'
 
 on:
   push:
