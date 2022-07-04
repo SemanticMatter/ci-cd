@@ -17,7 +17,6 @@ jobs:
       update_docs: true
       doc_extras: "[docs]"
       update_python_api_ref: false
-      update_docs_landing_page: true
-      landing_page_replacements: "(LICENSE),(LICENSE.md)|[CasperWA],[Casper Welzel Andersen]"
+      update_docs_landing_page: false
     secrets:
       PAT: ${{ secrets.RELEASE_PAT }}

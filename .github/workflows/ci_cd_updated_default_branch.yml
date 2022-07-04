@@ -193,6 +193,7 @@ jobs:
       working-directory: ./gh-actions
 
     - name: Determine if documentation was updated
+      if: env.RELEASE_RUN == 'false'
       run: |
         if [ -n "$(git status --porcelain docs/api_reference docs/index.md)" ]; then
           echo -e "\u274c Discrepancies found !"
