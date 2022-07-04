@@ -3,6 +3,7 @@ name: CI/CD - New updates to default branch
 on:
   workflow_call:
     inputs:
+      # REQUIRED
       package_dir:
         description: "Path to the Python package directory relative to the repository directory. Example: `'src/my_package'`."
         required: true
@@ -15,6 +16,7 @@ on:
         description: "A git user's email address (used to set the 'user.email' config option)."
         required: true
         type: string
+      # OPTIONAL
       permanent_dependencies_branch:
         description: "The branch name for the permanent dependency updates branch."
         required: false
@@ -30,6 +32,16 @@ on:
         required: false
         type: string
         default: ""
+      update_docs:
+        description: "Whether or not to also update the documentation."
+        required: false
+        type: boolean
+        default: false
+      update_docs_landing_page:
+        description: "Whether or not to update the documentation landing page. The landing page will be based on the root README.md file."
+        required: false
+        type: boolean
+        default: true
       python_version:
         description: "The Python version to use for the workflow when building the documentation."
         required: false
@@ -56,12 +68,12 @@ on:
         type: string
         default: ""
       landing_page_replacements:
-        description: "List of replacements (mappings) to be performed on README.md when creating the documentation's landing page (index.md). This list ALWAYS includes replacing `'docs/'`` with an empty string to correct relative links, i.e., this cannot be overwritten. By default `'(LICENSE)'` is replaced by `'(LICENSE.md)'`."
+        description: "List of replacements (mappings) to be performed on README.md when creating the documentation's landing page (index.md). This list ALWAYS includes replacing `'docs/'` with an empty string to correct relative links, i.e., this cannot be overwritten. By default `'(LICENSE)'` is replaced by `'(LICENSE.md)'`."
         required: false
         type: string
         default: "(LICENSE),(LICENSE.md)"
       landing_page_replacements_separator:
-        description: "String to separate replacement mappings from the 'replacements' input. Defaults to a pipe (`|``)."
+        description: "String to separate replacement mappings from the 'replacements' input. Defaults to a pipe (`|`)."
         required: false
         type: string
         default: "|"
@@ -79,6 +91,7 @@ jobs:
   deploy-docs:
     name: Deploy `latest` documentation
     runs-on: ubuntu-latest
+    if: inputs.update_docs
     outputs:
       release_run: ${{ steps.release_check.outputs.release_run }}
 
@@ -87,7 +100,7 @@ jobs:
       id: release_check
       run: |
         COMMIT_MSG="$(gh api /repos/${{ github.repository}}/commits/${{ inputs.default_repo_branch }} --jq '.commit.message')"
-        if [[ "${COMMIT_MSG}" =~ ^Release\ v.*$ ]] || [ "${COMMIT_MSG}" == "Update API reference docs & landing page" ]; then
+        if [[ "${COMMIT_MSG}" =~ ^Release\ v.*$ ]] || [ "${COMMIT_MSG}" == "[bot] Update documentation" ]; then
           echo "In a release or just ran this job - do not run this job !"
           RELEASE_RUN=true
         else
@@ -125,7 +138,8 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -U setuptools wheel
-        pip install .${{ inputs.doc_extras }}
+        pip install ./main${{ inputs.doc_extras }}
+        pip install -r ./gh-actions/requirements.txt
 
     - name: Set up git user
       if: env.RELEASE_RUN == 'false'
@@ -133,12 +147,14 @@ jobs:
         git config --global user.name "${{ inputs.git_username }}"
         git config --global user.email "${{ inputs.git_email }}"
 
-    - name: Check API Reference and landing page
+    - name: Clean working tree
+      if: env.RELEASE_RUN == 'false'
+      run: git checkout -- .
+      working-directory: ./main
+
+    - name: Update API Reference
       if: env.RELEASE_RUN == 'false'
       run: |
-        # Clean working tree
-        git checkout -- .
-
         invoke create-api-reference-docs \
           --pre-clean \
           --repo-folder=main \
@@ -146,9 +162,13 @@ jobs:
           --unwanted-dirs="${{ inputs.exclude_dirs }}" \
           --unwanted-files="${{ inputs.exclude_files }}" \
           --full-docs-dirs="${{ inputs.full_docs_dirs }}" \
+      working-directory: ./gh-actions
 
-        # Ensure the default replacement for LICENSE linking works with a custom
-        # separator
+    - name: Update landing page
+      if: env.RELEASE_RUN == 'false' && inputs.update_docs_landing_page
+      run: |
+        # Ensure the default replacement for LICENSE linking works
+        # with a custom separator
         LANDING_PAGE_REPLACEMENTS="${{ inputs.landing_page_replacements }}"
         if [ "${{ inputs.landing_page_replacements_mapping_separator }}" != "," ] && [ "${{ inputs.landing_page_replacements }}" == "(LICENSE),(LICENSE.md)" ]; then
           LANDING_PAGE_REPLACEMENTS="${LANDING_PAGE_REPLACEMENTS/,/${{ inputs.landing_page_replacements_mapping_separator }}}"
@@ -159,20 +179,21 @@ jobs:
           --replacements="${LANDING_PAGE_REPLACEMENTS}" \
           --replacements-separator="${{ inputs.landing_page_replacements_separator }}" \
           --internal-separator="${{ inputs.landing_page_replacements_mapping_separator }}"
+      working-directory: ./gh-actions
 
-        MAIN_DIR="${{ github.workspace }}/main"
-
-        if [ -n "$(git -C ${MAIN_DIR} status --porcelain docs/api_reference docs/index.md)" ]; then
+    - name: Determine if documentation was updated
+      run: |
+        if [ -n "$(git status --porcelain docs/api_reference docs/index.md)" ]; then
           echo -e "\u274c Discrepancies found !"
           echo -e "The following files in the documentation will be committed:"
-          git -C ${MAIN_DIR} status --porcelain docs/api_reference docs/index.md
-          git -C ${MAIN_DIR} commit -am "Update API reference docs & landing page"
+          git status --porcelain docs/api_reference docs/index.md
+          git commit -am "[bot] Update documentation"
           echo "UPDATE_DEFAULT_BRANCH=true" >> $GITHUB_ENV
         else
           echo -e "\u2705 All good !"
           echo "UPDATE_DEFAULT_BRANCH=false" >> $GITHUB_ENV
         fi
-      working-directory: ./gh-actions
+      working-directory: ./main
 
     - name: Update '${{ inputs.default_repo_branch }}'
       if: env.RELEASE_RUN == 'false' && env.UPDATE_DEFAULT_BRANCH == 'true'
@@ -194,7 +215,7 @@ jobs:
     name: Update permanent dependencies branch
     runs-on: ubuntu-latest
     needs: deploy-docs
-    if: needs.deploy-docs.outputs.release_run == 'false'
+    if: ( always() && ! inputs.update_docs ) || ( needs.deploy-docs.results = 'success' && needs.needs.deploy-docs.outputs.release_run == 'false' )
 
     steps:
     - name: Checkout ${{ github.repository }}
