@@ -199,7 +199,15 @@ jobs:
           echo -e "\u274c Discrepancies found !"
           echo -e "The following files in the documentation will be committed:"
           git status --porcelain docs/api_reference docs/index.md
-          git commit -am "[bot] Update documentation"
+
+          if [ -n "$(git status --porcelain docs/api_reference)" ]; then
+            git add docs/api_reference
+          fi
+          if [ -n "$(git status --porcelain docs/index.md)" ]; then
+            git add docs/index.md
+          fi
+
+          git commit -m "[bot] Update documentation"
           echo "UPDATE_DEFAULT_BRANCH=true" >> $GITHUB_ENV
         else
           echo -e "\u2705 All good !"
