@@ -18,6 +18,8 @@ See the [GitHub Docs](https://docs.github.com/en/actions/using-workflows/reusing
 
 Under the "Workflows" section for each available workflow, a usage example will be given.
 
+<!-- This line should be removed. -->
+
 ## License & copyright
 
 This repository licensed under the  [MIT LICENSE](LICENSE.md) with copyright &copy; 2022 Casper Welzel Andersen ([CasperWA](https://github.com/CasperWA)).
