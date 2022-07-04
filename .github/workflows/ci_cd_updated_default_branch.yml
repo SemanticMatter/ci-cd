@@ -3,6 +3,10 @@ name: CI/CD - New updates to default branch
 on:
   workflow_call:
     inputs:
+      package_dir:
+        description: "Path to the Python package directory relative to the repository directory. Example: `'src/my_package'`."
+        required: true
+        type: string
       git_username:
         description: "A git username (used to set the 'user.name' config option)."
         required: true
@@ -36,15 +40,161 @@ on:
         required: false
         type: string
         default: ""
+      exclude_dirs:
+        description: "Comma-separated list of directories to exclude in the Python API reference documentation. Note, only directory names, not paths, may be included. Note, all folders and their contents with these names will be excluded. Defaults to `'__pycache__'`. Important: When a user value is set, the preset value is overwritten - hence `'__pycache__'` should be included in the user value if one wants to exclude these directories."
+        required: false
+        type: string
+        default: "__pycache__"
+      exclude_files:
+        description: "Comma-separated list of files to exclude in the Python API reference documentation. Note, only full file names, not paths, may be included, i.e., filename + file extension. Note, all files with these names will be excluded. Defaults to `'__init__.py'`. Important: When a user value is set, the preset value is overwritten - hence `'__init__.py'` should be included in the user value if one wants to exclude these files."
+        required: false
+        type: string
+        default: "__init__.py"
+      full_docs_dirs:
+        description: "Comma-separated list of directories in which to include everything - even those without documentation strings. This may be useful for a module full of data models or to ensure all class attributes are listed."
+        required: false
+        type: string
+        default: ""
+      landing_page_replacements:
+        description: "List of replacements (mappings) to be performed on README.md when creating the documentation's landing page (index.md). This list ALWAYS includes replacing `'docs/'`` with an empty string to correct relative links, i.e., this cannot be overwritten. By default `'(LICENSE)'` is replaced by `'(LICENSE.md)'`."
+        required: false
+        type: string
+        default: "(LICENSE),(LICENSE.md)"
+      landing_page_replacements_separator:
+        description: "String to separate replacement mappings from the 'replacements' input. Defaults to a pipe (`|``)."
+        required: false
+        type: string
+        default: "|"
+      landing_page_replacements_mapping_separator:
+        description: "String to separate a single mapping's 'old' to 'new' statement. Defaults to a comma (`,`)."
+        required: false
+        type: string
+        default: ","
     secrets:
       release_PAT:
         description: "A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`."
         required: false
 
 jobs:
+  deploy-docs:
+    name: Deploy `latest` documentation
+    runs-on: ubuntu-latest
+    outputs:
+      release_run: ${{ steps.release_check.outputs.release_run }}
+
+    steps:
+    - name: Release check
+      id: release_check
+      run: |
+        COMMIT_MSG="$(gh api /repos/${{ github.repository}}/commits/${{ inputs.default_repo_branch }} --jq '.commit.message')"
+        if [[ "${COMMIT_MSG}" =~ ^Release\ v.*$ ]] || [ "${COMMIT_MSG}" == "Update API reference docs & landing page" ]; then
+          echo "In a release or just ran this job - do not run this job !"
+          RELEASE_RUN=true
+        else
+          echo "Not a release and did not just run this job - update docs"
+          RELEASE_RUN=false
+        fi
+        echo "RELEASE_RUN=${RELEASE_RUN}" >> $GITHUB_ENV
+        echo "::set-output release_run::${RELEASE_RUN}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Checkout ${{ github.repository }}
+      if: env.RELEASE_RUN == 'false'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        path: main
+
+    - name: Checkout CasperWA/gh-actions
+      if: env.RELEASE_RUN == 'false'
+      uses: actions/checkout@v3
+      with:
+        repository: CasperWA/gh-actions
+        ref: main
+        path: gh-actions
+
+    - name: Set up Python ${{ inputs.python_version }}
+      if: env.RELEASE_RUN == 'false'
+      uses: actions/setup-python@v4
+      with:
+        python-version: "${{ inputs.python_version }}"
+
+    - name: Install Python dependencies
+      if: env.RELEASE_RUN == 'false'
+      run: |
+        python -m pip install --upgrade pip
+        pip install -U setuptools wheel
+        pip install .${{ inputs.doc_extras }}
+
+    - name: Set up git user
+      if: env.RELEASE_RUN == 'false'
+      run: |
+        git config --global user.name "${{ inputs.git_username }}"
+        git config --global user.email "${{ inputs.git_email }}"
+
+    - name: Check API Reference and landing page
+      if: env.RELEASE_RUN == 'false'
+      run: |
+        # Clean working tree
+        git checkout -- .
+
+        invoke create-api-reference-docs \
+          --pre-clean \
+          --repo-folder=main \
+          --package-dir="${{ inputs.package_dir }}" \
+          --unwanted-dirs="${{ inputs.exclude_dirs }}" \
+          --unwanted-files="${{ inputs.exclude_files }}" \
+          --full-docs-dirs="${{ inputs.full_docs_dirs }}" \
+
+        # Ensure the default replacement for LICENSE linking works with a custom
+        # separator
+        LANDING_PAGE_REPLACEMENTS="${{ inputs.landing_page_replacements }}"
+        if [ "${{ inputs.landing_page_replacements_mapping_separator }}" != "," ] && [ "${{ inputs.landing_page_replacements }}" == "(LICENSE),(LICENSE.md)" ]; then
+          LANDING_PAGE_REPLACEMENTS="${LANDING_PAGE_REPLACEMENTS/,/${{ inputs.landing_page_replacements_mapping_separator }}}"
+        fi
+
+        invoke create-docs-index \
+          --repo-folder=main \
+          --replacements="${LANDING_PAGE_REPLACEMENTS}" \
+          --replacements-separator="${{ inputs.landing_page_replacements_separator }}" \
+          --internal-separator="${{ inputs.landing_page_replacements_mapping_separator }}"
+
+        MAIN_DIR="${{ github.workspace }}/main"
+
+        if [ -n "$(git -C ${MAIN_DIR} status --porcelain docs/api_reference docs/index.md)" ]; then
+          echo -e "\u274c Discrepancies found !"
+          echo -e "The following files in the documentation will be committed:"
+          git -C ${MAIN_DIR} status --porcelain docs/api_reference docs/index.md
+          git -C ${MAIN_DIR} commit -am "Update API reference docs & landing page"
+          echo "UPDATE_DEFAULT_BRANCH=true" >> $GITHUB_ENV
+        else
+          echo -e "\u2705 All good !"
+          echo "UPDATE_DEFAULT_BRANCH=false" >> $GITHUB_ENV
+        fi
+      working-directory: ./gh-actions
+
+    - name: Update '${{ inputs.default_repo_branch }}'
+      if: env.RELEASE_RUN == 'false' && env.UPDATE_DEFAULT_BRANCH == 'true'
+      uses: CasperWA/push-protected@v2
+      with:
+        token: ${{ secrets.release_PAT || secrets.GITHUB_TOKEN }}
+        branch: ${{ inputs.default_repo_branch }}
+        sleep: 15
+        force: true
+        tags: true
+        unprotect_reviews: true
+        path: main
+
+    - name: Deploy documentation
+      if: env.RELEASE_RUN == 'false'
+      run: mike deploy --push --remote origin --branch gh-pages --update-aliases --config-file mkdocs.yml latest ${{ inputs.default_repo_branch }}
+
   update-dependencies-branch:
     name: Update permanent dependencies branch
     runs-on: ubuntu-latest
+    needs: deploy-docs
+    if: needs.deploy-docs.outputs.release_run == 'false'
 
     steps:
     - name: Checkout ${{ github.repository }}
@@ -96,78 +246,3 @@ jobs:
         branch: ${{ inputs.permanent_dependencies_branch }}
         sleep: 15
         force: ${{ env.FORCE_PUSH }}
-
-  deploy-docs:
-    name: Deploy `latest` documentation
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Release check
-      run: |
-        COMMIT_MSG="$(gh api /repos/${{ github.repository}}/commits/${{ inputs.default_repo_branch }} --jq '.commit.message')"
-        if [[ "${COMMIT_MSG}" =~ ^Release\ v.*$ ]]; then
-          echo "In a release - do not run this job !"
-          echo "RELEASE_RUN=true" >> $GITHUB_ENV
-        else
-          echo "Not a release - update docs"
-          echo "RELEASE_RUN=false" >> $GITHUB_ENV
-        fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Checkout ${{ github.repository }}
-      if: env.RELEASE_RUN == 'false'
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        path: main
-
-    - name: Checkout CasperWA/gh-actions
-      if: env.RELEASE_RUN == 'false'
-      uses: actions/checkout@v3
-      with:
-        repository: CasperWA/gh-actions
-        ref: main
-        path: gh-actions
-
-    - name: Set up Python ${{ inputs.python_version }}
-      if: env.RELEASE_RUN == 'false'
-      uses: actions/setup-python@v4
-      with:
-        python-version: "${{ inputs.python_version }}"
-
-    - name: Install Python dependencies
-      if: env.RELEASE_RUN == 'false'
-      run: |
-        python -m pip install --upgrade pip
-        pip install -U setuptools wheel
-        pip install .${{ inputs.doc_extras }}
-
-    - name: Set up git user
-      if: env.RELEASE_RUN == 'false'
-      run: |
-        git config --global user.name "${{ inputs.git_username }}"
-        git config --global user.email "${{ inputs.git_email }}"
-
-    - name: Check API Reference and landing page
-      if: env.RELEASE_RUN == 'false'
-      run: |
-        invoke create-api-reference-docs --pre-clean
-        invoke create-docs-index
-
-        if [ -n "$(git status --porcelain docs/api_reference docs/index.md)" ]; then
-          echo -e "\u274c Discrepancies found !"
-          echo -e "The following files in the documentation must be committed:"
-          git status --porcelain docs/api_reference docs/index.md
-          echo -e "\nRun:\n"
-          echo "    invoke create-api-reference-docs --pre-clean"
-          echo -e "    invoke create-docs-index\n"
-          echo "And commit the changed files."
-          exit 1
-        else
-          echo -e "\u2705 All good !"
-        fi
-
-    - name: Deploy documentation
-      if: env.RELEASE_RUN == 'false'
-      run: mike deploy --push --remote origin --branch gh-pages --update-aliases --config-file mkdocs.yml latest ${{ inputs.default_repo_branch }}

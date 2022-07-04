@@ -206,3 +206,233 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
         )
     else:
         print("No dependency updates available.")
+
+
+@task(
+    help={
+        "package-dir": (
+            "Relative path to package dir from the repository root, "
+            "e.g. 'src/my_package'."
+        ),
+        "pre-clean": "Remove the 'api_reference' sub directory prior to (re)creation.",
+        "pre-commit": "Return a non-zero error code if changes were made.",
+        "repo-folder": (
+            "The folder name of the repository, wherein the package dir is located. "
+            "This defaults to 'main', as this will be used in the callable workflows."
+        ),
+        "docs-folder": (
+            "The folder name for the documentation root folder. "
+            "This defaults to 'docs'."
+        ),
+        "unwanted-dirs": (
+            "Comma-separated list of directories to avoid including in the Python API "
+            "reference documentation. Note, only directory names, not paths, may be "
+            "included. Note, all folders and their contents with these names will be "
+            "excluded. Defaults to '__pycache__'."
+        ),
+        "unwanted-files": (
+            "Comma-separated list of files to avoid including the Python API reference"
+            " documentation. Note, only full file names, not paths, may be included, "
+            "i.e., filename + file extension. Note, all files with these names will "
+            "be excluded. Defaults to '__init__.py'."
+        ),
+        "full-docs-dirs": (
+            "Comma-separated list of directories in which to include everything - even"
+            " those without documentation strings. This may be useful for a module "
+            "full of data models or to ensure all class attributes are listed."
+        ),
+    }
+)
+def create_api_reference_docs(  # pylint: disable=too-many-locals
+    context,
+    package_dir,
+    pre_clean=False,
+    pre_commit=False,
+    repo_folder="main",
+    docs_folder="docs",
+    unwanted_dirs="__pycache__",
+    unwanted_files="__init__.py",
+    full_docs_dirs="",
+):
+    """Create the Python API Reference in the documentation."""
+    import os
+    import shutil
+
+    def write_file(full_path: Path, content: str) -> None:
+        """Write file with `content` to `full_path`"""
+        if full_path.exists():
+            cached_content = full_path.read_text(encoding="utf8")
+            if content == cached_content:
+                del cached_content
+                return
+            del cached_content
+        full_path.write_text(content, encoding="utf8")
+
+    package_dir: Path = REPO_PARENT_DIR / repo_folder / package_dir
+    docs_api_ref_dir: Path = (
+        REPO_PARENT_DIR / repo_folder / docs_folder / "api_reference"
+    )
+
+    if "/" in unwanted_dirs + unwanted_files:
+        sys.exit(
+            "Unwanted directories and files may NOT be paths. A forward slash (/) was "
+            f"found in them. Given\n\n  --unwanted-dirs={unwanted_dirs},\n  "
+            f"--unwanted-files={unwanted_files}"
+        )
+
+    unwanted_subdirs: list[str] = unwanted_dirs.split(",")
+    unwanted_subfiles: list[str] = unwanted_files.split(",")
+    no_docstring_dirs: list[str] = full_docs_dirs.split(",")
+
+    pages_template = 'title: "{name}"\n'
+    md_template = "# {name}\n\n::: {py_path}\n"
+    no_docstring_template = (
+        md_template + f"{' ' * 4}options:\n{' ' * 6}show_if_no_docstring: true\n"
+    )
+
+    if docs_api_ref_dir.exists() and pre_clean:
+        shutil.rmtree(docs_api_ref_dir, ignore_errors=True)
+        if docs_api_ref_dir.exists():
+            sys.exit(f"{docs_api_ref_dir} should have been removed!")
+    docs_api_ref_dir.mkdir(exist_ok=True)
+
+    write_file(
+        full_path=docs_api_ref_dir / ".pages",
+        content=pages_template.format(name="API Reference"),
+    )
+
+    for dirpath, dirnames, filenames in os.walk(package_dir):
+        for unwanted_dir in unwanted_subdirs:
+            if unwanted_dir in dirnames:
+                # Avoid walking into or through unwanted directories
+                dirnames.remove(unwanted_dir)
+
+        relpath = Path(dirpath).relative_to(package_dir)
+
+        if not (package_dir.name / relpath / "__init__.py").exists():
+            # Avoid paths that are not included in the public Python API
+            print("does not exist:", package_dir.name / relpath / "__init__.py")
+            continue
+
+        # Create `.pages`
+        docs_sub_dir = docs_api_ref_dir / relpath
+        docs_sub_dir.mkdir(exist_ok=True)
+        print(docs_sub_dir)
+        if str(relpath) != ".":
+            write_file(
+                full_path=docs_sub_dir / ".pages",
+                content=pages_template.format(
+                    name=str(relpath).rsplit("/", maxsplit=1)[-1]
+                ),
+            )
+
+        # Create markdown files
+        for filename in filenames:
+            if re.match(r".*\.py$", filename) is None or filename in unwanted_subfiles:
+                # Not a Python file: We don't care about it!
+                # Or filename is in the tuple of unwanted files:
+                # We don't want it!
+                continue
+
+            basename = filename[: -len(".py")]
+            py_path = (
+                f"{package_dir.name}/{relpath}/{basename}".replace("/", ".")
+                if str(relpath) != "."
+                else f"{package_dir.name}/{basename}".replace("/", ".")
+            )
+            md_filename = filename.replace(".py", ".md")
+
+            # For special folders we want to include EVERYTHING, even if it doesn't
+            # have a doc-string
+            template = (
+                no_docstring_template
+                if str(relpath) in no_docstring_dirs
+                else md_template
+            )
+
+            write_file(
+                full_path=docs_sub_dir / md_filename,
+                content=template.format(name=basename, py_path=py_path),
+            )
+
+    if pre_commit:
+        # Check if there have been any changes.
+        # List changes if yes.
+        if TYPE_CHECKING:  # pragma: no cover
+            context: "Context" = context
+
+        # NOTE: grep returns an exit code of 1 if it doesn't find anything
+        # (which will be good in this case).
+        # Concerning the weird last grep command see:
+        # http://manpages.ubuntu.com/manpages/precise/en/man1/git-status.1.html
+        result: "Result" = context.run(
+            f'git -C "{REPO_PARENT_DIR / repo_folder}" status --porcelain '
+            f"{docs_api_ref_dir.relative_to(REPO_PARENT_DIR / repo_folder)} | "
+            "grep -E '^[? MARC][?MD]' || exit 0",
+            hide=True,
+        )
+        if result.stdout:
+            sys.exit(
+                "The following files have been changed/added, please stage "
+                f"them:\n\n{result.stdout}"
+            )
+
+
+@task(
+    help={
+        "repo-folder": (
+            "The folder name of the repository, wherein the package dir is located. "
+            "This defaults to 'main', as this will be used in the callable workflows."
+        ),
+        "docs-folder": (
+            "The folder name for the documentation root folder. "
+            "This defaults to 'docs'."
+        ),
+        "replacements": (
+            "List of replacements (mappings) to be performed on README.md when "
+            "creating the documentation's landing page (index.md). This list ALWAYS "
+            "includes replacing '{docs-folder}/' with an empty string to correct "
+            "relative links."
+        ),
+        "replacements-separator": (
+            "String to separate replacement mappings from the 'replacements' input. "
+            "Defaults to a pipe (|)."
+        ),
+        "internal-separator": (
+            "String to separate a single mapping's 'old' to 'new' statement. "
+            "Defaults to a comma (,)."
+        ),
+    }
+)
+def create_docs_index(
+    _,
+    repo_folder="main",
+    docs_folder="docs",
+    replacements="",
+    replacements_separator="|",
+    internal_separator=",",
+):
+    """Create the documentation index page from README.md."""
+    readme: Path = REPO_PARENT_DIR / repo_folder / "README.md"
+    docs_index: Path = REPO_PARENT_DIR / repo_folder / docs_folder / "index.md"
+
+    content = readme.read_text(encoding="utf8")
+
+    replacement_mapping = [(f"{docs_folder}/", "")]
+    for replacement in replacements.split(replacements_separator):
+        new_replacement_map = replacement.split(internal_separator)
+        if len(new_replacement_map) != 2:
+            sys.exit(
+                "A single replacement must only include an 'old' and 'new' part, "
+                "i.e., be of exactly length 2 when split by the "
+                "'--internal-separator'. The following replacement did not fulfill "
+                f"this requirement: {replacement!r}\n  "
+                f"--internal-separator={internal_separator!r}\n  "
+                f"--replacements-separator={replacements_separator!r}"
+            )
+        replacement_mapping.append(tuple(new_replacement_map))
+
+    for old, new in replacement_mapping:
+        content = content.replace(old, new)
+
+    docs_index.write_text(content, encoding="utf8")
