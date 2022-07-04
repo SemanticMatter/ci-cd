@@ -28,13 +28,14 @@ The repository contains the following:
 
 | **Name** | **Descriptions** | **Required** | **Default** | **Type** |
 |:--- |:--- |:---:|:---:|:---:|
-| `package_dir` | Path to the Python package directory relative to the repository directory.</br></br>Example: `'src/my_package'`. | **_Yes_** | | _string_ |
 | `git_username` | A git username (used to set the 'user.name' config option). | **_Yes_** | | _string_ |
 | `git_email` | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
 | `permanent_dependencies_branch` | The branch name for the permanent dependency updates branch. | No | ci/dependency-updates | _string_ |
 | `default_repo_branch` | The branch name of the repository's default branch. More specifically, the branch the PR should target. | No | main | _string_ |
 | `update_dependencies_pr_body_file` | Relative path to a PR body file from the root of the repository, which is used in the 'CI - Update dependencies' workflow, if used.</br></br>Example: `'.github/utils/pr_body_update_deps.txt'`. | No | _Empty string_ | _string_ |
 | `update_docs` | Whether or not to also run the 'docs' workflow job. | No | `false` | _boolean_ |
+| `update_python_api_ref` | Whether or not to update the Python API documentation reference.</br></br>**Note**: If this is 'true', 'package_dir' is _required_. | No | `true` | _boolean_ |
+| `package_dir` | Path to the Python package directory relative to the repository directory.</br></br>Example: `'src/my_package'`.</br></br>**Important**: This is _required_ if 'update_docs' and 'update_python_api_ref' are 'true'. | **_Yes_ (if 'update_docs' and 'update_python_api_ref' are 'true')** | | _string_ |
 | `update_docs_landing_page` | Whether or not to update the documentation landing page. The landing page will be based on the root README.md file. | No | `true` | _boolean_ |
 | `python_version` | The Python version to use for the workflow.</br></br>**Note**: This is only relevant if `update_pre-commit` is `true`. | No | 3.9 | _string_ |
 | `doc_extras` | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Example: `'[docs]'`. | No | _Empty string_ | _string_ |
@@ -70,12 +71,12 @@ jobs:
     uses: CasperWA/gh-actions/.github/workflows/ci_cd_updated_default_branch.yml@main
     if: github.repository_owner == 'CasperWA'
     inputs:
-      package_dir: my-python-package
       git_username: "Casper Welzel Andersen"
       git_email: "CasperWA@github.com"
       default_repo_branch: stable
       permanent_dependencies_branch: "ci/dependency-updates"
       update_docs: true
+      package_dir: my-python-package
       doc_extras: "[docs]"
       exclude_files: __init__.py,config.py
       full_docs_dirs: models
