@@ -1,3 +1,5 @@
 .*_cache/
 *.pyc
 __pycache__/
+
+site/

@@ -3,7 +3,7 @@ name: CI - Activate auto-merging for PRs
 on:
   workflow_call:
     secrets:
-      release_PAT:
+      PAT:
         description: "A personal access token (PAT) with rights to update the `release_branch`. This will fallback on `GITHUB_TOKEN`."
         required: false
 
@@ -25,4 +25,4 @@ jobs:
         PR_ID="$(gh api graphql -F owner='{owner}' -F name='{repo}' -f query='query($owner: String!, $name: String!) {repository(owner: $owner, name: $name) {pullRequest(number: ${{ github.event.pull_request.number }}) {id}}}' --jq '.data.repository.pullRequest.id')"
         gh api graphql -f pr_id="$PR_ID" -f query='mutation($pr_id: ID!) {enablePullRequestAutoMerge(input:{mergeMethod:SQUASH,pullRequestId:$pr_id }) {pullRequest {number}}}'
       env:
-        GITHUB_TOKEN: ${{ secrets.release_PAT || secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}

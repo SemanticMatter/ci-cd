@@ -59,7 +59,7 @@ on:
       PyPI_token:
         description: "A PyPI token for publishing the built package to PyPI."
         required: true
-      release_PAT:
+      PAT:
         description: "A personal access token (PAT) with rights to update the `release_branch`. This will fallback on `GITHUB_TOKEN`."
         required: false
 
@@ -141,7 +141,7 @@ jobs:
     - name: Update '${{ inputs.release_branch }}'
       uses: CasperWA/push-protected@v2
       with:
-        token: ${{ secrets.release_PAT || secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
         branch: ${{ inputs.release_branch }}
         sleep: 15
         force: true

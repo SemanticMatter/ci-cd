@@ -31,9 +31,9 @@ on:
 
 jobs:
   publish:
-    name: Publish package and documentation
+    name: Call external workflow
     uses: CasperWA/gh-actions/.github/workflows/cd_release.yml@main
-    if: github.repository == 'CasperWA/my-py-package' && startsWith(github.ref, 'refs/tags/v')
+    if: github.repository == 'CasperWA/my-python-package' && startsWith(github.ref, 'refs/tags/v')
     with:
       git_username: "Casper Welzel Andersen"
       git_email: "CasperWA@github.com"
@@ -45,7 +45,7 @@ jobs:
       tag_message_file: ".github/utils/release_tag_msg.txt"
     secrets:
       PyPI_token: ${{ secrets.PYPI_TOKEN }}
-      release_PAT: ${{ secrets.PAT }}
+      PAT: ${{ secrets.PAT }}
 ```
 
 ## CD - Release (`cd_release.yml`)
@@ -90,7 +90,7 @@ The repository contains the following:
 | **Name** | **Descriptions** | **Required** |
 |:--- |:--- |:---:|
 | `PyPI_token` | A PyPI token for publishing the built package to PyPI. | **_Yes_** |
-| `release_PAT` | A personal access token (PAT) with rights to update the `release_branch`. This will fallback on `GITHUB_TOKEN`. | No |
+| `PAT` | A personal access token (PAT) with rights to update the `release_branch`. This will fallback on `GITHUB_TOKEN`. | No |
 
 ## CI - Activate auto-merging for PRs (`ci_automerge_prs.yml`)
 
@@ -99,7 +99,7 @@ Activate auto-merging for a PR.
 <!-- markdownlint-disable-next-line MD024 -->
 ### Expectations
 
-The `release_PAT` secret must represent a user with the rights to activate auto-merging.
+The `PAT` secret must represent a user with the rights to activate auto-merging.
 
 This workflow can _only_ be called if the triggering event from the caller workflow is `pull_request_target`.
 
@@ -113,7 +113,7 @@ There are no inputs for this workflow.
 
 | **Name** | **Descriptions** | **Required** |
 |:--- |:--- |:---:|
-| `release_PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
+| `PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
 
 ## CI - Check dependencies (`ci_check_pyproject_dependencies.yml`)
 
@@ -121,8 +121,8 @@ This workflow runs an [Invoke](https://pyinvoke.org) task to check dependencies 
 
 The reason for having this workflow and not using [Dependabot](https://github.com/dependabot/dependabot-core) is because it seems to not function properly with this use case.
 
-> **Warning**: If a PAT is not passed through for the `release_PAT` secret and `GITHUB_TOKEN` is used, beware that any other CI/CD jobs that run for, e.g., pull request events, may not run since `GITHUB_TOKEN`-generated PRs are designed to not start more workflows to avoid escalation.
-> Hence, if it is important to run CI/CD workflows for pull requests, consider passing a PAT as a secret to this workflow represented by the `release_PAT` secret.
+> **Warning**: If a PAT is not passed through for the `PAT` secret and `GITHUB_TOKEN` is used, beware that any other CI/CD jobs that run for, e.g., pull request events, may not run since `GITHUB_TOKEN`-generated PRs are designed to not start more workflows to avoid escalation.
+> Hence, if it is important to run CI/CD workflows for pull requests, consider passing a PAT as a secret to this workflow represented by the `PAT` secret.
 
 <!-- markdownlint-disable-next-line MD024 -->
 ### Expectations
@@ -150,7 +150,7 @@ The repository contains the following:
 
 | **Name** | **Descriptions** | **Required** |
 |:--- |:--- |:---:|
-| `release_PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
+| `PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
 
 ## CI - Update dependencies (`ci_update_dependencies.yml`)
 
@@ -163,8 +163,8 @@ The main point of having this workflow is to have a single PR, which can be squa
 
 As a "bonus" this workflow supports updating [pre-commit](https://pre-commit.com) hooks.
 
-> **Warning**: If a PAT is not passed through for the `release_PAT` secret and `GITHUB_TOKEN` is used, beware that any other CI/CD jobs that run for, e.g., pull request events, may not run since `GITHUB_TOKEN`-generated PRs are designed to not start more workflows to avoid escalation.
-> Hence, if it is important to run CI/CD workflows for pull requests, consider passing a PAT as a secret to this workflow represented by the `release_PAT` secret.
+> **Warning**: If a PAT is not passed through for the `PAT` secret and `GITHUB_TOKEN` is used, beware that any other CI/CD jobs that run for, e.g., pull request events, may not run since `GITHUB_TOKEN`-generated PRs are designed to not start more workflows to avoid escalation.
+> Hence, if it is important to run CI/CD workflows for pull requests, consider passing a PAT as a secret to this workflow represented by the `PAT` secret.
 <!-- markdownlint-disable-next-line MD028 -->
 
 > **Important**: If this is to be used together with the [CI/CD - New updates to default branch](#cicd---new-updates-to-default-branch-ci_cd_updated_default_branchyml) workflow, the `pr_body_file` supplied (if any) should be immutable within the first 8 lines, i.e., no check boxes or similar in the first 8 lines.
@@ -198,7 +198,7 @@ There are no expectations of the repo when using this workflow.
 
 | **Name** | **Descriptions** | **Required** |
 |:--- |:--- |:---:|
-| `release_PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
+| `PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
 
 ## CI/CD - New updates to default branch (`ci_cd_updated_default_branch.yml`)
 
@@ -206,8 +206,8 @@ Keep your `permanent_dependencies_branch` branch up-to-date with changes in your
 
 Furthermore, this workflow can optionally update the `latest` [mike](https://github.com/jimporter/mike)+[MkDocs](https://www.mkdocs.org)+[GitHub Pages](https://pages.github.com/)-framework documentation release alias, which represents the `default_repo_branch`.
 
-> **Warning**: If a PAT is not passed through for the `release_PAT` secret and `GITHUB_TOKEN` is used, beware that any other CI/CD jobs that run for, e.g., pull request events, may not run since `GITHUB_TOKEN`-generated PRs are designed to not start more workflows to avoid escalation.
-> Hence, if it is important to run CI/CD workflows for pull requests, consider passing a PAT as a secret to this workflow represented by the `release_PAT` secret.
+> **Warning**: If a PAT is not passed through for the `PAT` secret and `GITHUB_TOKEN` is used, beware that any other CI/CD jobs that run for, e.g., pull request events, may not run since `GITHUB_TOKEN`-generated PRs are designed to not start more workflows to avoid escalation.
+> Hence, if it is important to run CI/CD workflows for pull requests, consider passing a PAT as a secret to this workflow represented by the `PAT` secret.
 <!-- markdownlint-disable-next-line MD028 -->
 
 > **Important**: If this is to be used together with the [CI - Update dependencies](#ci---update-dependencies-ci_update_dependenciesyml) workflow, the `pr_body_file` supplied to that workflow (if any) should match the `update_depednencies_pr_body_file` input in this workflow and be immutable within the first 8 lines, i.e., no check boxes or similar in the first 8 lines.
@@ -249,4 +249,4 @@ The repository contains the following:
 
 | **Name** | **Descriptions** | **Required** |
 |:--- |:--- |:---:|
-| `release_PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
+| `PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |

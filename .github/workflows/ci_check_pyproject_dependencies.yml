@@ -42,7 +42,7 @@ on:
         type: string
         default: ""
     secrets:
-      release_PAT:
+      PAT:
         description: "A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`."
         required: false
 
@@ -129,7 +129,7 @@ jobs:
       id: cpr
       uses: peter-evans/create-pull-request@v4
       with:
-        token: ${{ secrets.release_PAT || secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
         committer: "${{ inputs.git_username }} <${{ inputs.git_email }}>"
         author: "${{ inputs.git_username }} <${{ inputs.git_email }}>"
         branch: ci/update-pyproject

@@ -1,5 +1,5 @@
 """Repository management tasks powered by `invoke`.
-More information on `invoke` can be found at http://www.pyinvoke.org/.
+More information on `invoke` can be found at [pyinvoke.org](http://www.pyinvoke.org/).
 """
 # pylint: disable=import-outside-toplevel
 import re
