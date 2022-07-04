@@ -227,7 +227,7 @@ jobs:
     name: Update permanent dependencies branch
     runs-on: ubuntu-latest
     needs: deploy_docs
-    if: ( always() && ! inputs.update_docs ) || ( needs.deploy_docs.results == 'success' && needs.needs.deploy_docs.outputs.release_run == 'false' )
+    if: ( always() && ! inputs.update_docs ) || ( needs.deploy_docs.results == 'success' && needs.deploy_docs.outputs.release_run == 'false' )
 
     steps:
     - name: Checkout ${{ github.repository }}
