@@ -15,4 +15,4 @@ See the [GitHub Docs](https://docs.github.com/en/actions/using-workflows/reusing
 
 ## License & copyright
 
-This repository licensed under the  [MIT LICENSE](LICENSE.md) with copyright &copy; 2022 Casper Welzel Andersen ([CasperWA](https://github.com/CasperWA)).
+This repository licensed under the  [MIT LICENSE](LICENSE) with copyright &copy; 2022 Casper Welzel Andersen ([CasperWA](https://github.com/CasperWA)).

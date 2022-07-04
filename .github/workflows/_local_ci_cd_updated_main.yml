@@ -15,8 +15,9 @@ jobs:
       permanent_dependencies_branch: "ci/dependency-updates"
       default_repo_branch: main
       update_docs: true
-      update_python_api_ref: false
-      update_docs_landing_page: false
       doc_extras: "[docs]"
+      update_python_api_ref: false
+      update_docs_landing_page: true
+      landing_page_replacements: "(LICENSE),(LICENSE.md)|[CasperWA],[Casper Welzel Andersen]"
     secrets:
       PAT: ${{ secrets.RELEASE_PAT }}
