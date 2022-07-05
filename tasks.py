@@ -295,9 +295,9 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branc
     no_docstring_dirs: list[str] = full_docs_dirs.split(",")
 
     if debug:
-        print("unwanted_subdirs", unwanted_subdirs, flush=True)
-        print("unwanted_subfiles", unwanted_subfiles, flush=True)
-        print("no_docstring_dirs", no_docstring_dirs, flush=True)
+        print("unwanted_subdirs:", unwanted_subdirs, flush=True)
+        print("unwanted_subfiles:", unwanted_subfiles, flush=True)
+        print("no_docstring_dirs:", no_docstring_dirs, flush=True)
 
     pages_template = 'title: "{name}"\n'
     md_template = "# {name}\n\n::: {py_path}\n"
@@ -324,22 +324,20 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branc
         for unwanted_dir in unwanted_subdirs:
             if debug:
                 print("unwanted_dir:", unwanted_dir, flush=True)
-                print("dirnames;", dirnames, flush=True)
+                print("dirnames:", dirnames, flush=True)
             if unwanted_dir in dirnames:
                 # Avoid walking into or through unwanted directories
                 dirnames.remove(unwanted_dir)
 
         relpath = Path(dirpath).relative_to(package_dir)
+        abspath = (package_dir / relpath).resolve()
         if debug:
             print("relpath:", relpath, flush=True)
+            print("abspath:", abspath, flush=True)
 
-        if not (package_dir.name / relpath / "__init__.py").exists():
+        if not (abspath / "__init__.py").exists():
             # Avoid paths that are not included in the public Python API
-            print(
-                "does not exist:",
-                package_dir.name / relpath / "__init__.py",
-                flush=True,
-            )
+            print("does not exist:", abspath / "__init__.py", flush=True)
             continue
 
         # Create `.pages`
