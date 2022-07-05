@@ -12,6 +12,13 @@ The newly created tag (created due to the caller workflow running `on.release.ty
 Secondly, a job to update the documentation is run, however, this can be deactivated.
 The job expects the documentation to be setup with the [mike](https://github.com/jimporter/mike)+[MkDocs](https://www.mkdocs.org)+[GitHub Pages](https://pages.github.com/) framework.
 
+For more information about the specific changelog inputs, see the related [changelog generator](https://github.com/github-changelog-generator/github-changelog-generator) actually used, specifically the [list of configuration options](https://github.com/github-changelog-generator/github-changelog-generator/wiki/Advanced-change-log-generation-examples).
+
+!!! note
+    Concerning the changelog generator, the specific input `changelog_exclude_labels` defaults to a list of different labels if not supplied, hence, if supplied, one might want to include these labels alongside any extra labels.
+    The default value is given here as a help:  
+    `'duplicate,question,invalid,wontfix'`
+
 ## Expectations
 
 This workflow should _only_ be used for releasing a single modern Python package.
@@ -27,23 +34,27 @@ The repository contains the following:
 
 | **Name** | **Descriptions** | **Required** | **Default** | **Type** |
 |:--- |:--- |:---:|:---:|:---:|
-| `package_dir` | Path to the Python package directory relative to the repository directory.</br></br>Example: `'src/my_package'`. | **_Yes_** | | _string_ |
 | `git_username` | A git username (used to set the 'user.name' config option). | **_Yes_** | | _string_ |
 | `git_email` | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
+| `python_package` | Whether or not this is a Python package, where the version should be updated in the `'package_dir'/__init__.py` and a build and release to PyPI should be performed. | No | `true` | _boolean_ |
+| `package_dir` | Path to the Python package directory relative to the repository directory.</br></br>Example: `'src/my_package'`.</br></br>**Important**: This is _required_ if 'python_package' is 'true', which is the default. | **_Yes_ (if 'python_package' is 'true'** | | _string_ |
 | `release_branch` | The branch name to release/publish from. | No | main | _string_ |
 | `install_extras` | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Example: `'[dev,release]'`. | No | _Empty string_ | _string_ |
 | `python_version` | The Python version to use for the workflow. | No | 3.9 | _string_ |
+| `build_cmd` | The package build command, e.g., `'pip install flit && flit build'` or `'python -m build'` (default). | No | `python -m build` | _string_ |
+| `tag_message_file` | Relative path to a release tag message file from the root of the repository.</br></br>Example: `'.github/utils/release_tag_msg.txt'`. | No | _Empty string_ | _string_ |
+| `publish_on_pypi` | Whether or not to publish on PyPI.</br></br>**Note**: This is only relevant if 'python_package' is 'true', which is the default. | No | `true` | _boolean_ |
+| `test` | Whether to use the TestPyPI repository index instead of PyPI. | No | `false` | _boolean_ |
 | `update_docs` | Whether or not to also run the 'docs' workflow job. | No | `false` | _boolean_ |
 | `doc_extras` | Any extras to install from the local repository through 'pip'. Must be encapsulated in square parentheses (`[]`) and be separated by commas (`,`) without any spaces.</br></br>Note, if this is empty, 'install_extras' will be used as a fallback.</br></br>Example: `'[docs]'`. | No | _Empty string_ | _string_ |
-| `build_cmd` | The package build command, e.g., `'flit build'` or `'python -m build'` (default). | No | `python -m build` | _string_ |
-| `tag_message_file` | Relative path to a release tag message file from the root of the repository.</br></br>Example: `'.github/utils/release_tag_msg.txt'`. | No | _Empty string_ | _string_ |
-| `test` | Whether to use the TestPyPI repository index instead of PyPI. | No | `false` | _boolean_ |
+| `changelog_exclude_tags_regex` | A regular expression matching any tags that should be excluded from the CHANGELOG.md. | No | _Empty string_ | _string_ |
+| `changelog_exclude_labels` | Comma-separated list of labels to exclude from the CHANGELOG.md. | No | _Empty string_ | _string_ |
 
 ## Secrets
 
 | **Name** | **Descriptions** | **Required** |
 |:--- |:--- |:---:|
-| `PyPI_token` | A PyPI token for publishing the built package to PyPI. | **_Yes_** |
+| `PyPI_token` | A PyPI token for publishing the built package to PyPI.</br></br>**Important**: This is _required_ if both 'python_package' and 'publish_on_pypi' are 'true'. Both are 'true' by default. | **_Yes_ (if 'python_package' and 'publish_on_pypi' are 'true')** |
 | `PAT` | A personal access token (PAT) with rights to update the `release_branch`. This will fallback on `GITHUB_TOKEN`. | No |
 
 ## Usage example
@@ -69,10 +80,11 @@ jobs:
       git_email: "CasperWA@github.com"
       release_branch: stable
       install_extras: "[dev,build]"
-      doc_extras: "[docs]"
-      update_docs: true
-      build_cmd: "flit build"
+      build_cmd: "pip install flit && flit build"
       tag_message_file: ".github/utils/release_tag_msg.txt"
+      update_docs: true
+      doc_extras: "[docs]"
+      exclude_labels: "skip_changelog,duplicate"
     secrets:
       PyPI_token: ${{ secrets.PYPI_TOKEN }}
       PAT: ${{ secrets.PAT }}
