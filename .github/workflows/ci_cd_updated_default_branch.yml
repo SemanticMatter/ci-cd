@@ -88,6 +88,11 @@ on:
         required: false
         type: string
         default: ","
+      test:
+        description: "Whether to do a \"dry run\", i.e., run the workflow, but avoid pushing to 'permanent_dependencies_branch' branch and deploying documentation (if 'update_docs' is 'true')."
+        required: false
+        type: boolean
+        default: false
     secrets:
       PAT:
         description: "A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`."
@@ -161,13 +166,19 @@ jobs:
           exit 1
         fi
 
-        invoke create-api-reference-docs \
+        if [ "${{ inputs.test }}" == "true" ]; then
+          DEBUG=--debug
+        else
+          DEBUG=
+        fi
+
+        invoke create-api-reference-docs ${DEBUG} \
           --pre-clean \
           --repo-folder=main \
           --package-dir="${{ inputs.package_dir }}" \
           --unwanted-dirs="${{ inputs.exclude_dirs }}" \
           --unwanted-files="${{ inputs.exclude_files }}" \
-          --full-docs-dirs="${{ inputs.full_docs_dirs }}" \
+          --full-docs-dirs="${{ inputs.full_docs_dirs }}"
       working-directory: ./gh-actions
 
     - name: Update landing page

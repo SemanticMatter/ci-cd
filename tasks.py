@@ -241,9 +241,10 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             " those without documentation strings. This may be useful for a module "
             "full of data models or to ensure all class attributes are listed."
         ),
+        "debug": "Whether or not to print debug statements.",
     }
 )
-def create_api_reference_docs(  # pylint: disable=too-many-locals
+def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements,line-too-long
     context,
     package_dir,
     pre_clean=False,
@@ -253,6 +254,7 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals
     unwanted_dirs="__pycache__",
     unwanted_files="__init__.py",
     full_docs_dirs="",
+    debug=False,
 ):
     """Create the Python API Reference in the documentation."""
     import os
@@ -272,6 +274,14 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals
     docs_api_ref_dir: Path = (
         REPO_PARENT_DIR / repo_folder / docs_folder / "api_reference"
     )
+    if debug:
+        print("package_dir:", package_dir, flush=True)
+        print("docs_api_ref_dir:", docs_api_ref_dir, flush=True)
+        print(
+            "unwanted_dirs + unwanted_files:",
+            unwanted_dirs + unwanted_files,
+            flush=True,
+        )
 
     if "/" in unwanted_dirs + unwanted_files:
         sys.exit(
@@ -284,6 +294,11 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals
     unwanted_subfiles: list[str] = unwanted_files.split(",")
     no_docstring_dirs: list[str] = full_docs_dirs.split(",")
 
+    if debug:
+        print("unwanted_subdirs", unwanted_subdirs, flush=True)
+        print("unwanted_subfiles", unwanted_subfiles, flush=True)
+        print("no_docstring_dirs", no_docstring_dirs, flush=True)
+
     pages_template = 'title: "{name}"\n'
     md_template = "# {name}\n\n::: {py_path}\n"
     no_docstring_template = (
@@ -291,11 +306,15 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals
     )
 
     if docs_api_ref_dir.exists() and pre_clean:
+        if debug:
+            print(f"Removing {docs_api_ref_dir}", flush=True)
         shutil.rmtree(docs_api_ref_dir, ignore_errors=True)
         if docs_api_ref_dir.exists():
             sys.exit(f"{docs_api_ref_dir} should have been removed!")
     docs_api_ref_dir.mkdir(exist_ok=True)
 
+    if debug:
+        print(f"Writing file: {docs_api_ref_dir / '.pages'}", flush=True)
     write_file(
         full_path=docs_api_ref_dir / ".pages",
         content=pages_template.format(name="API Reference"),
@@ -303,22 +322,34 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals
 
     for dirpath, dirnames, filenames in os.walk(package_dir):
         for unwanted_dir in unwanted_subdirs:
+            if debug:
+                print("unwanted_dir:", unwanted_dir, flush=True)
+                print("dirnames;", dirnames, flush=True)
             if unwanted_dir in dirnames:
                 # Avoid walking into or through unwanted directories
                 dirnames.remove(unwanted_dir)
 
         relpath = Path(dirpath).relative_to(package_dir)
+        if debug:
+            print("relpath:", relpath, flush=True)
 
         if not (package_dir.name / relpath / "__init__.py").exists():
             # Avoid paths that are not included in the public Python API
-            print("does not exist:", package_dir.name / relpath / "__init__.py")
+            print(
+                "does not exist:",
+                package_dir.name / relpath / "__init__.py",
+                flush=True,
+            )
             continue
 
         # Create `.pages`
         docs_sub_dir = docs_api_ref_dir / relpath
         docs_sub_dir.mkdir(exist_ok=True)
-        print(docs_sub_dir)
+        if debug:
+            print("docs_sub_dir:", docs_sub_dir, flush=True)
         if str(relpath) != ".":
+            if debug:
+                print(f"Writing file: {docs_sub_dir / '.pages'}", flush=True)
             write_file(
                 full_path=docs_sub_dir / ".pages",
                 content=pages_template.format(
@@ -332,6 +363,11 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals
                 # Not a Python file: We don't care about it!
                 # Or filename is in the tuple of unwanted files:
                 # We don't want it!
+                if debug:
+                    print(
+                        f"{filename} is not a Python file or is in unwanted_subfiles. Skipping it.",
+                        flush=True,
+                    )
                 continue
 
             basename = filename[: -len(".py")]
@@ -341,6 +377,10 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals
                 else f"{package_dir.name}/{basename}".replace("/", ".")
             )
             md_filename = filename.replace(".py", ".md")
+            if debug:
+                print("basename:", basename, flush=True)
+                print("py_path:", py_path, flush=True)
+                print("md_filename:", md_filename, flush=True)
 
             # For special folders we want to include EVERYTHING, even if it doesn't
             # have a doc-string
@@ -349,6 +389,10 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals
                 if str(relpath) in no_docstring_dirs
                 else md_template
             )
+
+            if debug:
+                print("template:", template, flush=True)
+                print(f"Writing file: {docs_sub_dir / md_filename}", flush=True)
 
             write_file(
                 full_path=docs_sub_dir / md_filename,

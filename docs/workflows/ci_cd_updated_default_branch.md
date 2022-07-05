@@ -45,6 +45,7 @@ The repository contains the following:
 | `landing_page_replacements` | List of replacements (mappings) to be performed on README.md when creating the documentation's landing page (index.md). This list _always_ includes replacing `'docs/'` with an empty string to correct relative links, i.e., this cannot be overwritten. By default `'(LICENSE)'` is replaced by `'(LICENSE.md)'`. | No | (LICENSE),(LICENSE.md) | _string_ |
 | `landing_page_replacements_separator` | String to separate replacement mappings from the 'replacements' input. Defaults to a pipe (`\|`). | No | \| | _string_ |
 | `landing_page_replacements_mapping_separator` | String to separate a single mapping's 'old' to 'new' statement. Defaults to a comma (`,`). | No | , | _string_ |
+| `test` | Whether to do a "dry run", i.e., run the workflow, but avoid pushing to 'permanent_dependencies_branch' branch and deploying documentation (if 'update_docs' is 'true'). | No | `false` | _boolean_ |
 
 ## Secrets
 
