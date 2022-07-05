@@ -122,13 +122,17 @@ jobs:
 
           echo -e "TAG_NAME\n\nThe full release changelog can be seen in the\n[repository source file](https://github.com/${{ github.repository }}/blob/TAG_NAME/CHANGELOG.md)." > ${TAG_MSG_FILE}
           echo "Using default release tag message."
+          REMOVE_TAG_MSG_FILE=true
         else
           echo "Using found release tag message text file at ${{ inputs.tag_message_file }}."
           TAG_MSG_FILE=main/${{ inputs.tag_message_file }}
+          REMOVE_TAG_MSG_FILE=false
         fi
 
         sed -i "s|TAG_NAME|${REF}|" "${TAG_MSG_FILE}"
         git -C ${MAIN_DIR} tag -af -F "${TAG_MSG_FILE}" ${REF}
+
+        if [ "${REMOVE_TAG_MSG_FILE}" == "true" ]; then rm -f "${TAG_MSG_FILE}"; fi
       working-directory: ./gh-actions
 
     - name: Build source distribution

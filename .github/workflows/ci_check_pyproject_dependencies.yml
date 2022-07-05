@@ -112,9 +112,11 @@ jobs:
 
           echo -e "### Update dependencies (\`pyproject.toml\`)\n\nAutomatically created PR based on the ['CI - Check dependencies' workflow](https://github.com/CasperWA/gh-actions#ci---check-dependencies-ci_check_pyproject_dependenciesyml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions)." > ${PR_BODY_FILE}
           echo "Using default PR body."
+          echo "REMOVE_PR_BODY_FILE=true" >> $GITHUB_ENV
         else
           echo "Using found PR body text file at ${{ inputs.pr_body_file }}."
           echo "PR_BODY_FILE=main/${{ inputs.pr_body_file }}" >> $GITHUB_ENV
+          echo "REMOVE_PR_BODY_FILE=false" >> $GITHUB_ENV
         fi
 
     - name: Fetch PR body
@@ -123,6 +125,10 @@ jobs:
       uses: chuhlomin/render-template@v1.5
       with:
         template: ${{ env.PR_BODY_FILE }}
+
+    - name: Remove temporary file
+      if: env.REMOVE_PR_BODY_FILE == 'true'
+      run: rm -f ${{ env.PR_BODY_FILE }}
 
     - name: Create PR
       if: env.UPDATE_DEPS == 'true'

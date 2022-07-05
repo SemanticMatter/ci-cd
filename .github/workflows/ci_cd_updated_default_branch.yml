@@ -258,9 +258,11 @@ jobs:
 
           echo -e "### Update dependencies\n\nAutomatically created PR from [\`${{ inputs.permanent_dependencies_branch }}\`](https://github.com/${{ github.repository }}/tree/${{ inputs.permanent_dependencies_branch }}).\n\nThe PR is based on the ['CI - Update dependencies PR' workflow](https://github.com/CasperWA/gh-actions#ci---update-dependencies-pr-ci_update_dependenciesyml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions).\n\n#### To do\n" > ${PR_BODY_FILE}
           echo "Using default PR body (similar to the one used in the 'CI - Update dependencies' workflow)."
+          echo "REMOVE_PR_BODY_FILE=true" >> $GITHUB_ENV
         else
           echo "Using found PR body text file at ${{ inputs.update_dependencies_pr_body_file }}."
           echo "PR_BODY_FILE=${{ inputs.update_dependencies_pr_body_file }}" >> $GITHUB_ENV
+          echo "REMOVE_PR_BODY_FILE=false" >> $GITHUB_ENV
         fi
 
     - name: Update '${{ inputs.permanent_dependencies_branch }}'
@@ -278,6 +280,11 @@ jobs:
           git merge -m "Keep '${{ inputs.permanent_dependencies_branch }}' up-to-date with '${{ inputs.default_repo_branch }}'" origin/${{ inputs.default_repo_branch }}
           echo "FORCE_PUSH=no" >> $GITHUB_ENV
         fi
+
+        if [ "${{ env.REMOVE_PR_BODY_FILE }}" == "true" ] && [ -f "${{ env.PR_BODY_FILE }}" ]; then
+          rm -f "${{ env.PR_BODY_FILE }}"
+        fi
+        if [ -f ".tmp_file.txt" ]; then rm -f .tmp_file.txt; fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
