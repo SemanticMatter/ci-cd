@@ -133,9 +133,11 @@ jobs:
 
           echo -e "### Update dependencies\n\nAutomatically created PR from [\`${{ inputs.permanent_dependencies_branch }}\`](https://github.com/${{ github.repository }}/tree/${{ inputs.permanent_dependencies_branch }}).\n\nThe PR is based on the ['CI - Update dependencies PR' workflow](https://github.com/CasperWA/gh-actions#ci---update-dependencies-pr-ci_update_dependenciesyml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions).\n\n#### To do\n\n- [ ] Check that the diff is sensible, and that tests and builds pass with the new dependency versions.\n${{ inputs.extra_to_dos }}" > ${PR_BODY_FILE}
           echo "Using default PR body."
+          echo "REMOVE_PR_BODY_FILE=true" >> $GITHUB_ENV
         else
           echo "Using found PR body text file at ${{ inputs.pr_body_file }}."
           echo "PR_BODY_FILE=${{ inputs.pr_body_file }}" >> $GITHUB_ENV
+          echo "REMOVE_PR_BODY_FILE=false" >> $GITHUB_ENV
         fi
 
     - name: Fetch PR body
@@ -143,6 +145,10 @@ jobs:
       uses: chuhlomin/render-template@v1.5
       with:
         template: ${{ env.PR_BODY_FILE }}
+
+    - name: Remove temporary file
+      if: env.REMOVE_PR_BODY_FILE == 'true'
+      run: rm -f ${{ env.PR_BODY_FILE }}
 
     - name: Create PR
       id: cpr

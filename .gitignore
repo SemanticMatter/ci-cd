@@ -1,5 +1,7 @@
 .*_cache/
 *.pyc
 __pycache__/
+*.egg*/
+build/
 
 site/
