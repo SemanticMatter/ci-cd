@@ -73,7 +73,9 @@ plugins:
 
 nav:
   - Home: index.md
-  - ... | workflows/**
+  - Workflows:
+    - Overview: workflows/index.md
+    - ... | flat
   - ... | python/**
   - License: LICENSE.md
   - Changelog: CHANGELOG.md
