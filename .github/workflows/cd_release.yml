@@ -125,9 +125,7 @@ jobs:
         release_branch: ${{ inputs.release_branch }}
         exclude_tags_regex: "${{ inputs.changelog_exclude_tags_regex }}"
         exclude_labels: "${{ inputs.changelog_exclude_labels }}"
-
-    - name: Move CHANGELOG.md
-      run: mv -f CHANGELOG.md ./main/CHANGELOG.md
+        output: "main/CHANGELOG.md"
 
     - name: Set up git user
       run: |
