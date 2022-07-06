@@ -187,7 +187,12 @@ jobs:
         path: main
 
     - name: Get tagged versions
-      run: echo "PREVIOUS_VERSION=$(git tag -l --sort -version:refname | grep -v -E "${{ inputs.changelog_exclude_tags_regex }}" | sed -n 2p)" >> $GITHUB_ENV
+      run: |
+        if [ -n "${{ inputs.changelog_exclude_tags_regex }}" ]; then
+          echo "PREVIOUS_VERSION=$(git tag -l --sort -version:refname | grep -v -E "${{ inputs.changelog_exclude_tags_regex }}" | sed -n 2p)" >> $GITHUB_ENV
+        else
+          echo "PREVIOUS_VERSION=$(git tag -l --sort -version:refname | sed -n 2p)" >> $GITHUB_ENV
+        fi
       working-directory: ./main
 
     - name: Create release-specific changelog
