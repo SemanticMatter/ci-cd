@@ -18,5 +18,6 @@ jobs:
       doc_extras: "[docs]"
       update_python_api_ref: false
       update_docs_landing_page: false
+      changelog_exclude_tags_regex: "^v[0-9]+$"
     secrets:
       PAT: ${{ secrets.RELEASE_PAT }}
