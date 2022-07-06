@@ -1,13 +1,13 @@
 ---
-title: CI - Update dependencies
+title: CI - Update dependencies PR
 ---
 <!-- markdownlint-disable MD038 -->
 <!-- markdownlint-disable-next-line MD025 -->
-# CI - Update dependencies (`ci_update_dependencies.yml`)
+# CI - Update dependencies PR (`ci_update_dependencies.yml`)
 
 This workflow creates a PR if there are any updates in the `permanent_dependencies_branch` branch that have not been included in the `default_repo_branch` branch.
 
-This workflow works nicely together with the [CI - Check dependencies](./ci_check_pyproject_dependencies.md) workflow, and the same value for `permanent_dependencies_branch` should be used.
+This workflow works nicely together with the [CI - Check pyproject.toml dependencies](./ci_check_pyproject_dependencies.md) workflow, and the same value for `permanent_dependencies_branch` should be used.
 In this way, this workflow can be called on a schedule to update the dependencies that have been merged into the `permanent_dependencies_branch` branch into the `default_repo_branch` branch.
 
 The main point of having this workflow is to have a single PR, which can be squash merged, to merge several dependency updates performed by [Dependabot](https://github.com/dependabot/dependabot-core) or similar.
@@ -50,7 +50,7 @@ There are no expectations of the repo when using this workflow.
 
 ## Usage example
 
-The following is an example of how a workflow may look that calls _CI - Update dependencies_.
+The following is an example of how a workflow may look that calls _CI - Update dependencies PR_.
 It is meant to be complete as is.
 
 ```yaml

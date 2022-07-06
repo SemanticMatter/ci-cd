@@ -1,4 +1,4 @@
-name: CI - Check dependencies
+name: CI - Check pyproject.toml dependencies
 
 on:
   workflow_call:
@@ -110,7 +110,7 @@ jobs:
           PR_BODY_FILE=.tmp_pr-body_${{ github.run_id }}_${{ github.run_number }}_${{ github.run_attempt }}.txt
           echo "PR_BODY_FILE=${PR_BODY_FILE}" >> $GITHUB_ENV
 
-          echo -e "### Update dependencies (\`pyproject.toml\`)\n\nAutomatically created PR based on the ['CI - Check dependencies' workflow](https://github.com/CasperWA/ci-cd#ci---check-dependencies-ci_check_pyproject_dependenciesyml) in [CasperWA/ci-cd](https://github.com/CasperWA/ci-cd)." > ${PR_BODY_FILE}
+          echo -e "### Update dependencies (\`pyproject.toml\`)\n\nAutomatically created PR based on the ['CI - Check pyproject.toml dependencies' workflow](https://CasperWA.github.io/ci-cd/latest/workflows/ci_check_pyproject_dependencies/) in [CasperWA/ci-cd](https://github.com/CasperWA/ci-cd)." > ${PR_BODY_FILE}
           echo "Using default PR body."
           echo "REMOVE_PR_BODY_FILE=true" >> $GITHUB_ENV
         else

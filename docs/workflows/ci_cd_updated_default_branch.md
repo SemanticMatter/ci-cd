@@ -13,8 +13,8 @@ Furthermore, this workflow can optionally update the `latest` [mike](https://git
     Hence, if it is important to run CI/CD workflows for pull requests, consider passing a PAT as a secret to this workflow represented by the `PAT` secret.
 
 !!! important
-    If this is to be used together with the [CI - Update dependencies](./ci_update_dependencies.md) workflow, the `pr_body_file` supplied to that workflow (if any) should match the `update_depednencies_pr_body_file` input in this workflow and be immutable within the first 8 lines, i.e., no check boxes or similar in the first 8 lines.
-    Indeed, it is recommended to not supply `pr_body_file` to the [CI - Update dependencies](./ci_update_dependencies.md) workflow as well as to not supply the `update_dependencies_pr_body_file` in this workflow in this case.
+    If this is to be used together with the [CI - Update dependencies PR](./ci_update_dependencies.md) workflow, the `pr_body_file` supplied to that workflow (if any) should match the `update_depednencies_pr_body_file` input in this workflow and be immutable within the first 8 lines, i.e., no check boxes or similar in the first 8 lines.
+    Indeed, it is recommended to not supply `pr_body_file` to the [CI - Update dependencies PR](./ci_update_dependencies.md) workflow as well as to not supply the `update_dependencies_pr_body_file` in this workflow in this case.
 
 ## Expectations
 
@@ -32,7 +32,7 @@ The repository contains the following:
 | `git_email` | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
 | `permanent_dependencies_branch` | The branch name for the permanent dependency updates branch. | No | ci/dependency-updates | _string_ |
 | `default_repo_branch` | The branch name of the repository's default branch. More specifically, the branch the PR should target. | No | main | _string_ |
-| `update_dependencies_pr_body_file` | Relative path to a PR body file from the root of the repository, which is used in the 'CI - Update dependencies' workflow, if used.</br></br>Example: `'.github/utils/pr_body_update_deps.txt'`. | No | _Empty string_ | _string_ |
+| `update_dependencies_pr_body_file` | Relative path to a PR body file from the root of the repository, which is used in the 'CI - Update dependencies PR' workflow, if used.</br></br>Example: `'.github/utils/pr_body_update_deps.txt'`. | No | _Empty string_ | _string_ |
 | `update_docs` | Whether or not to also run the 'docs' workflow job. | No | `false` | _boolean_ |
 | `update_python_api_ref` | Whether or not to update the Python API documentation reference.</br></br>**Note**: If this is 'true', 'package_dir' is _required_. | No | `true` | _boolean_ |
 | `package_dir` | Path to the Python package directory relative to the repository directory.</br></br>Example: `'src/my_package'`.</br></br>**Important**: This is _required_ if 'update_docs' and 'update_python_api_ref' are 'true'. | **_Yes_ (if 'update_docs' and 'update_python_api_ref' are 'true')** | | _string_ |

@@ -1,8 +1,8 @@
 ---
-title: CI - Check dependencies
+title: CI - Check pyproject.toml dependencies
 ---
 <!-- markdownlint-disable-next-line MD025 -->
-# CI - Check dependencies (`ci_check_pyproject_dependencies.yml`)
+# CI - Check pyproject.toml dependencies (`ci_check_pyproject_dependencies.yml`)
 
 This workflow runs an [Invoke](https://pyinvoke.org) task to check dependencies in a `pyproject.toml` file.
 
@@ -39,7 +39,7 @@ The repository contains the following:
 
 ## Usage example
 
-The following is an example of how a workflow may look that calls _CI - Check dependencies_.
+The following is an example of how a workflow may look that calls _CI - Check pyproject.toml dependencies_.
 It is meant to be complete as is.
 
 ```yaml
