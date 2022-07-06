@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.1.1](https://github.com/CasperWA/ci-cd/tree/v1.1.1) (2022-07-06)
+
+[Full Changelog](https://github.com/CasperWA/ci-cd/compare/v1.1.0...v1.1.1)
+
+**Fixed bugs:**
+
+- Hooks not working externally [\#21](https://github.com/CasperWA/ci-cd/issues/21)
+
+**Merged pull requests:**
+
+- Use invoke as library [\#25](https://github.com/CasperWA/ci-cd/pull/25) ([CasperWA](https://github.com/CasperWA))
+
 ## [v1.1.0](https://github.com/CasperWA/ci-cd/tree/v1.1.0) (2022-07-06)
 
 [Full Changelog](https://github.com/CasperWA/ci-cd/compare/v1.0.1...v1.1.0)
