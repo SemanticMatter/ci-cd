@@ -1,5 +1,7 @@
 # GitHub Action reusable workflows
 
+**Current version to use:** `v1`
+
 This repository contains reusable workflows for GitHub Actions.
 
 They are mainly for usage with modern Python package repositories.

@@ -53,7 +53,7 @@ on:
 jobs:
   check-dependencies:
     name: Call external workflow
-    uses: CasperWA/ci-cd/.github/workflows/ci_check_pyproject_dependencies.yml@main
+    uses: CasperWA/ci-cd/.github/workflows/ci_check_pyproject_dependencies.yml@v1
     if: github.repository_owner == 'CasperWA'
     inputs:
       git_username: "Casper Welzel Andersen"

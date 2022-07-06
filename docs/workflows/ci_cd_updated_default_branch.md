@@ -76,7 +76,7 @@ on:
 jobs:
   updates-to-stable:
     name: Call external workflow
-    uses: CasperWA/ci-cd/.github/workflows/ci_cd_updated_default_branch.yml@main
+    uses: CasperWA/ci-cd/.github/workflows/ci_cd_updated_default_branch.yml@v1
     if: github.repository_owner == 'CasperWA'
     inputs:
       git_username: "Casper Welzel Andersen"
