@@ -246,6 +246,7 @@ jobs:
     # Note: This updated changelog will only exist for the `latest` documentation
     # release.
     - name: Update changelog with unreleased changes
+      if: env.RELEASE_RUN == 'false'
       uses: CharMixer/auto-changelog-action@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
