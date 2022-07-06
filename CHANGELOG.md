@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.1.0](https://github.com/CasperWA/ci-cd/tree/v1.1.0) (2022-07-06)
+
+[Full Changelog](https://github.com/CasperWA/ci-cd/compare/v1.0.1...v1.1.0)
+
+**Implemented enhancements:**
+
+- New pre-commit hooks for invoke tasks [\#16](https://github.com/CasperWA/ci-cd/issues/16)
+
+**Merged pull requests:**
+
+- First pre-commit hooks [\#20](https://github.com/CasperWA/ci-cd/pull/20) ([CasperWA](https://github.com/CasperWA))
+
 ## [v1.0.1](https://github.com/CasperWA/ci-cd/tree/v1.0.1) (2022-07-06)
 
 [Full Changelog](https://github.com/CasperWA/ci-cd/compare/v1.0.0...v1.0.1)
