@@ -16,6 +16,11 @@ Furthermore, this workflow can optionally update the `latest` [mike](https://git
     If this is to be used together with the [CI - Update dependencies PR](./ci_update_dependencies.md) workflow, the `pr_body_file` supplied to that workflow (if any) should match the `update_depednencies_pr_body_file` input in this workflow and be immutable within the first 8 lines, i.e., no check boxes or similar in the first 8 lines.
     Indeed, it is recommended to not supply `pr_body_file` to the [CI - Update dependencies PR](./ci_update_dependencies.md) workflow as well as to not supply the `update_dependencies_pr_body_file` in this workflow in this case.
 
+!!! note
+    Concerning the changelog generator, the specific input `changelog_exclude_labels` defaults to a list of different labels if not supplied, hence, if supplied, one might want to include these labels alongside any extra labels.
+    The default value is given here as a help:  
+    `'duplicate,question,invalid,wontfix'`
+
 ## Expectations
 
 The repository contains the following:
@@ -46,6 +51,8 @@ The repository contains the following:
 | `landing_page_replacements_separator` | String to separate replacement mappings from the 'replacements' input. Defaults to a pipe (`\|`). | No | \| | _string_ |
 | `landing_page_replacements_mapping_separator` | String to separate a single mapping's 'old' to 'new' statement. Defaults to a comma (`,`). | No | , | _string_ |
 | `test` | Whether to do a "dry run", i.e., run the workflow, but avoid pushing to 'permanent_dependencies_branch' branch and deploying documentation (if 'update_docs' is 'true'). | No | `false` | _boolean_ |
+| `changelog_exclude_tags_regex` | A regular expression matching any tags that should be excluded from the CHANGELOG.md. | No | _Empty string_ | _string_ |
+| `changelog_exclude_labels` | Comma-separated list of labels to exclude from the CHANGELOG.md. | No | _Empty string_ | _string_ |
 
 ## Secrets
 
