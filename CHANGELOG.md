@@ -1,12 +1,41 @@
 # Changelog
 
-## [v0.1.0](https://github.com/CasperWA/gh-actions/tree/v0.1.0) (2022-07-05)
+## [v1.0.0](https://github.com/CasperWA/ci-cd/tree/v1.0.0) (2022-07-06)
 
-[Full Changelog](https://github.com/CasperWA/gh-actions/compare/15676e5c3b8ecb7291ab14c228b927883d0df8f5...v0.1.0)
+[Full Changelog](https://github.com/CasperWA/ci-cd/compare/v0.1.0...v1.0.0)
+
+**Implemented enhancements:**
+
+- Use proper option for changelog generator instead of moving file afterwards [\#13](https://github.com/CasperWA/ci-cd/issues/13)
+- Update CHANGELOG with unreleased stuff when updating default branch [\#11](https://github.com/CasperWA/ci-cd/issues/11)
+- Update to new repo name [\#8](https://github.com/CasperWA/ci-cd/issues/8)
+- Allow testing/debugging CI/CD workflow [\#6](https://github.com/CasperWA/ci-cd/issues/6)
+- Make "FIRST\_RELEASE" bool more robust [\#3](https://github.com/CasperWA/ci-cd/issues/3)
+
+**Fixed bugs:**
+
+- Exclude tags from PREVIOUS\_VERSION in release workflow [\#17](https://github.com/CasperWA/ci-cd/issues/17)
+- Update local workflow for updated CI/CD workflow [\#12](https://github.com/CasperWA/ci-cd/issues/12)
+- Fix links for various "default" PR bodies and tag messages [\#9](https://github.com/CasperWA/ci-cd/issues/9)
+- API Reference creation not working [\#7](https://github.com/CasperWA/ci-cd/issues/7)
+- Ensure the permanent dependencies branch is always updated [\#4](https://github.com/CasperWA/ci-cd/issues/4)
+
+**Closed issues:**
+
+- Update documentation with new inputs for CI/CD workflow [\#14](https://github.com/CasperWA/ci-cd/issues/14)
+- Workflow overview in documentation [\#5](https://github.com/CasperWA/ci-cd/issues/5)
 
 **Merged pull requests:**
 
-- New workflow triggering changes with new default branch changes [\#1](https://github.com/CasperWA/gh-actions/pull/1) ([CasperWA](https://github.com/CasperWA))
+- Update repo and workflow title names [\#10](https://github.com/CasperWA/ci-cd/pull/10) ([CasperWA](https://github.com/CasperWA))
+
+## [v0.1.0](https://github.com/CasperWA/ci-cd/tree/v0.1.0) (2022-07-05)
+
+[Full Changelog](https://github.com/CasperWA/ci-cd/compare/15676e5c3b8ecb7291ab14c228b927883d0df8f5...v0.1.0)
+
+**Merged pull requests:**
+
+- New workflow triggering changes with new default branch changes [\#1](https://github.com/CasperWA/ci-cd/pull/1) ([CasperWA](https://github.com/CasperWA))
 
 
 
