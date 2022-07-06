@@ -19,6 +19,9 @@ For more information about the specific changelog inputs, see the related [chang
     The default value is given here as a help:  
     `'duplicate,question,invalid,wontfix'`
 
+The `changelog_exclude_tags_regex` is also used to remove tags in a list of tags to consider when evaluating the "previous version".
+This is specifically for adding a changelog to the GitHub release body.
+
 ## Expectations
 
 This workflow should _only_ be used for releasing a single modern Python package.

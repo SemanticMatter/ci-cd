@@ -165,11 +165,6 @@ jobs:
         git -C ${MAIN_DIR} tag -af -F "${TAG_MSG_FILE}" ${REF}
 
         if [ "${REMOVE_TAG_MSG_FILE}" == "true" ]; then rm -f "${TAG_MSG_FILE}"; fi
-        if [ $(git -C ${MAIN_DIR} tag -l | grep -E "^v[0-9]+(\.[0-9]+){2}" | wc -l) -eq 1 ]; then
-          echo "FIRST_RELEASE=true" >> $GITHUB_ENV
-        else
-          echo "FIRST_RELEASE=false" >> $GITHUB_ENV
-        fi
       working-directory: ./ci-cd
 
     - name: Build source distribution
@@ -192,12 +187,7 @@ jobs:
         path: main
 
     - name: Get tagged versions
-      run: |
-        if [ "${{ env.FIRST_RELEASE }}" == "false" ]; then
-          echo "PREVIOUS_VERSION=$(git tag -l --sort -version:refname | sed -n 2p)" >> $GITHUB_ENV
-        else
-          echo "PREVIOUS_VERSION=" >> $GITHUB_ENV
-        fi
+      run: echo "PREVIOUS_VERSION=$(git tag -l --sort -version:refname | grep -v -E "${{ inputs.changelog_exclude_tags_regex }}" | sed -n 2p)" >> $GITHUB_ENV
       working-directory: ./main
 
     - name: Create release-specific changelog
