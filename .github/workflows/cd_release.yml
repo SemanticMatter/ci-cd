@@ -127,7 +127,7 @@ jobs:
         exclude_labels: "${{ inputs.changelog_exclude_labels }}"
 
     - name: Move CHANGELOG.md
-      run: mv CHANGELOG.md ./main/CHANGELOG.md
+      run: mv -f CHANGELOG.md ./main/CHANGELOG.md
 
     - name: Set up git user
       run: |
