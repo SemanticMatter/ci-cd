@@ -4,7 +4,7 @@ from pathlib import Path
 from setuptools import setup
 
 setup(
-    name="gh-actions",
+    name="ci-cd",
     install_requires=Path("requirements.txt").read_text(encoding="utf8").splitlines(),
     extras_require={
         "dev": Path("requirements_dev.txt").read_text(encoding="utf8").splitlines(),

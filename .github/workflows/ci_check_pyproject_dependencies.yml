@@ -59,12 +59,12 @@ jobs:
         fetch-depth: 0
         path: main
 
-    - name: Checkout CasperWA/gh-actions
+    - name: Checkout CasperWA/ci-cd
       uses: actions/checkout@v3
       with:
-        repository: CasperWA/gh-actions
+        repository: CasperWA/ci-cd
         ref: main
-        path: gh-actions
+        path: ci-cd
 
     - name: Set up Python ${{ inputs.python_version }}
       uses: actions/setup-python@v4
@@ -76,7 +76,7 @@ jobs:
         python -m pip install -U pip
         pip install -U setuptools wheel
         pip install ./main${{ inputs.install_extras }}
-        pip install -r ./gh-actions/requirements.txt
+        pip install -r ./ci-cd/requirements.txt
 
     - name: Set up git user
       run: |
@@ -101,7 +101,7 @@ jobs:
         else
           echo "UPDATE_DEPS=false" >> $GITHUB_ENV
         fi
-      working-directory: ./gh-actions
+      working-directory: ./ci-cd
 
     - name: Set PR body
       if: env.UPDATE_DEPS == 'true'
@@ -110,7 +110,7 @@ jobs:
           PR_BODY_FILE=.tmp_pr-body_${{ github.run_id }}_${{ github.run_number }}_${{ github.run_attempt }}.txt
           echo "PR_BODY_FILE=${PR_BODY_FILE}" >> $GITHUB_ENV
 
-          echo -e "### Update dependencies (\`pyproject.toml\`)\n\nAutomatically created PR based on the ['CI - Check dependencies' workflow](https://github.com/CasperWA/gh-actions#ci---check-dependencies-ci_check_pyproject_dependenciesyml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions)." > ${PR_BODY_FILE}
+          echo -e "### Update dependencies (\`pyproject.toml\`)\n\nAutomatically created PR based on the ['CI - Check dependencies' workflow](https://github.com/CasperWA/ci-cd#ci---check-dependencies-ci_check_pyproject_dependenciesyml) in [CasperWA/ci-cd](https://github.com/CasperWA/ci-cd)." > ${PR_BODY_FILE}
           echo "Using default PR body."
           echo "REMOVE_PR_BODY_FILE=true" >> $GITHUB_ENV
         else

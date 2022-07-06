@@ -1,6 +1,6 @@
 site_name: "GH Action Reusable Workflows"
 site_description: Documentation for GitHub Action resusable workflows
-site_url: https://CasperWA.github.io/gh-actions
+site_url: https://CasperWA.github.io/ci-cd
 copyright: Copyright &copy; 2022 Casper Welzel Andersen
 
 theme:
@@ -18,8 +18,8 @@ theme:
     - navigation.instant
     - navigation.top
 
-repo_name: "gh-actions"
-repo_url: "https://github.com/CasperWA/gh-actions"
+repo_name: "ci-cd"
+repo_url: "https://github.com/CasperWA/ci-cd"
 edit_uri: ""
 
 extra:

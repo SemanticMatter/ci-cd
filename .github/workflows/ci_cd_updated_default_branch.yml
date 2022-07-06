@@ -125,13 +125,13 @@ jobs:
         fetch-depth: 0
         path: main
 
-    - name: Checkout CasperWA/gh-actions
+    - name: Checkout CasperWA/ci-cd
       if: env.RELEASE_RUN == 'false'
       uses: actions/checkout@v3
       with:
-        repository: CasperWA/gh-actions
+        repository: CasperWA/ci-cd
         ref: main
-        path: gh-actions
+        path: ci-cd
 
     - name: Set up Python ${{ inputs.python_version }}
       if: env.RELEASE_RUN == 'false'
@@ -145,7 +145,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -U setuptools wheel
         pip install ./main${{ inputs.doc_extras }}
-        pip install -r ./gh-actions/requirements.txt
+        pip install -r ./ci-cd/requirements.txt
 
     - name: Set up git user
       if: env.RELEASE_RUN == 'false'
@@ -179,7 +179,7 @@ jobs:
           --unwanted-dirs="${{ inputs.exclude_dirs }}" \
           --unwanted-files="${{ inputs.exclude_files }}" \
           --full-docs-dirs="${{ inputs.full_docs_dirs }}"
-      working-directory: ./gh-actions
+      working-directory: ./ci-cd
 
     - name: Update landing page
       if: env.RELEASE_RUN == 'false' && inputs.update_docs_landing_page
@@ -196,7 +196,7 @@ jobs:
           --replacements="${LANDING_PAGE_REPLACEMENTS}" \
           --replacements-separator="${{ inputs.landing_page_replacements_separator }}" \
           --internal-separator="${{ inputs.landing_page_replacements_mapping_separator }}"
-      working-directory: ./gh-actions
+      working-directory: ./ci-cd
 
     - name: Determine if documentation was updated
       if: env.RELEASE_RUN == 'false'
@@ -262,7 +262,7 @@ jobs:
           PR_BODY_FILE=.tmp_pr-body_${{ github.run_id }}_${{ github.run_number }}_${{ github.run_attempt }}.txt
           echo "PR_BODY_FILE=${PR_BODY_FILE}" >> $GITHUB_ENV
 
-          echo -e "### Update dependencies\n\nAutomatically created PR from [\`${{ inputs.permanent_dependencies_branch }}\`](https://github.com/${{ github.repository }}/tree/${{ inputs.permanent_dependencies_branch }}).\n\nThe PR is based on the ['CI - Update dependencies PR' workflow](https://github.com/CasperWA/gh-actions#ci---update-dependencies-pr-ci_update_dependenciesyml) in [CasperWA/gh-actions](https://github.com/CasperWA/gh-actions).\n\n#### To do\n" > ${PR_BODY_FILE}
+          echo -e "### Update dependencies\n\nAutomatically created PR from [\`${{ inputs.permanent_dependencies_branch }}\`](https://github.com/${{ github.repository }}/tree/${{ inputs.permanent_dependencies_branch }}).\n\nThe PR is based on the ['CI - Update dependencies PR' workflow](https://github.com/CasperWA/ci-cd#ci---update-dependencies-pr-ci_update_dependenciesyml) in [CasperWA/ci-cd](https://github.com/CasperWA/ci-cd).\n\n#### To do\n" > ${PR_BODY_FILE}
           echo "Using default PR body (similar to the one used in the 'CI - Update dependencies' workflow)."
           echo "REMOVE_PR_BODY_FILE=true" >> $GITHUB_ENV
         else

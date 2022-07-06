@@ -73,7 +73,7 @@ on:
 jobs:
   publish:
     name: Publish package and documentation
-    uses: CasperWA/gh-actions/.github/workflows/cd_release.yml@main
+    uses: CasperWA/ci-cd/.github/workflows/cd_release.yml@main
     if: github.repository == 'CasperWA/my-python-package' && startsWith(github.ref, 'refs/tags/v')
     with:
       git_username: "Casper Welzel Andersen"

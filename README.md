@@ -4,7 +4,7 @@ This repository contains reusable workflows for GitHub Actions.
 
 They are mainly for usage with modern Python package repositories.
 
-**All available workflows and more detailed information can be found in the documentation [here](https://CasperWA.github.io/gh-actions).**
+**All available workflows and more detailed information can be found in the documentation [here](https://CasperWA.github.io/ci-cd).**
 
 ## Usage
 
