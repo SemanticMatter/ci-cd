@@ -1,8 +1,6 @@
----
-title: CI/CD - New updates to default branch
----
-<!-- markdownlint-disable-next-line MD025 -->
-# CI/CD - New updates to default branch (`ci_cd_updated_default_branch.yml`)
+# CI/CD - New updates to default branch
+
+**File to use:** `ci_cd_updated_default_branch.yml`
 
 Keep your `permanent_dependencies_branch` branch up-to-date with changes in your main development branch, i.e., the `default_repo_branch`.
 
@@ -31,7 +29,7 @@ The repository contains the following:
 
 ## Inputs
 
-| **Name** | **Descriptions** | **Required** | **Default** | **Type** |
+| **Name** | **Description** | **Required** | **Default** | **Type** |
 |:--- |:--- |:---:|:---:|:---:|
 | `git_username` | A git username (used to set the 'user.name' config option). | **_Yes_** | | _string_ |
 | `git_email` | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
@@ -56,7 +54,7 @@ The repository contains the following:
 
 ## Secrets
 
-| **Name** | **Descriptions** | **Required** |
+| **Name** | **Description** | **Required** |
 |:--- |:--- |:---:|
 | `PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
 
@@ -84,7 +82,7 @@ jobs:
       default_repo_branch: stable
       permanent_dependencies_branch: "ci/dependency-updates"
       update_docs: true
-      package_dir: my-python-package
+      package_dir: my_python_package
       doc_extras: "[docs]"
       exclude_files: __init__.py,config.py
       full_docs_dirs: models

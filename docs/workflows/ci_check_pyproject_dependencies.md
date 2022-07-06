@@ -1,8 +1,6 @@
----
-title: CI - Check pyproject.toml dependencies
----
-<!-- markdownlint-disable-next-line MD025 -->
-# CI - Check pyproject.toml dependencies (`ci_check_pyproject_dependencies.yml`)
+# CI - Check pyproject.toml dependencies
+
+**File to use:** `ci_check_pyproject_dependencies.yml`
 
 This workflow runs an [Invoke](https://pyinvoke.org) task to check dependencies in a `pyproject.toml` file.
 
@@ -20,7 +18,7 @@ The repository contains the following:
 
 ## Inputs
 
-| **Name** | **Descriptions** | **Required** | **Default** | **Type** |
+| **Name** | **Description** | **Required** | **Default** | **Type** |
 |:--- |:--- |:---:|:---:|:---:|
 | `git_username` | A git username (used to set the 'user.name' config option). | **_Yes_** | | _string_ |
 | `git_email` | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
@@ -33,7 +31,7 @@ The repository contains the following:
 
 ## Secrets
 
-| **Name** | **Descriptions** | **Required** |
+| **Name** | **Description** | **Required** |
 |:--- |:--- |:---:|
 | `PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
 

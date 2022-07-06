@@ -1,9 +1,7 @@
----
-title: CI - Update dependencies PR
----
 <!-- markdownlint-disable MD038 -->
-<!-- markdownlint-disable-next-line MD025 -->
-# CI - Update dependencies PR (`ci_update_dependencies.yml`)
+# CI - Update dependencies PR
+
+**File to use:** `ci_update_dependencies.yml`
 
 This workflow creates a PR if there are any updates in the `permanent_dependencies_branch` branch that have not been included in the `default_repo_branch` branch.
 
@@ -28,7 +26,7 @@ There are no expectations of the repo when using this workflow.
 
 ## Inputs
 
-| **Name** | **Descriptions** | **Required** | **Default** | **Type** |
+| **Name** | **Description** | **Required** | **Default** | **Type** |
 |:--- |:--- |:---:|:---:|:---:|
 | `git_username` | A git username (used to set the 'user.name' config option). | **_Yes_** | | _string_ |
 | `git_email` | A git user's email address (used to set the 'user.email' config option). | **_Yes_** | | _string_ |
@@ -44,7 +42,7 @@ There are no expectations of the repo when using this workflow.
 
 ## Secrets
 
-| **Name** | **Descriptions** | **Required** |
+| **Name** | **Description** | **Required** |
 |:--- |:--- |:---:|
 | `PAT` | A personal access token (PAT) with rights to update the `permanent_dependencies_branch`. This will fallback on `GITHUB_TOKEN`. | No |
 
