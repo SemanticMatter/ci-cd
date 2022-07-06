@@ -1,5 +1,18 @@
 # Changelog
 
+## [v1.0.1](https://github.com/CasperWA/ci-cd/tree/v1.0.1) (2022-07-06)
+
+[Full Changelog](https://github.com/CasperWA/ci-cd/compare/v1.0.0...v1.0.1)
+
+**Fixed bugs:**
+
+- Ensure PREVIOUS\_VERSION can be retrieved if input not given [\#19](https://github.com/CasperWA/ci-cd/issues/19)
+- Fix condition for running steps in CI/CD workflow [\#18](https://github.com/CasperWA/ci-cd/issues/18)
+
+**Closed issues:**
+
+- Update documentation to `@v1` [\#15](https://github.com/CasperWA/ci-cd/issues/15)
+
 ## [v1.0.0](https://github.com/CasperWA/ci-cd/tree/v1.0.0) (2022-07-06)
 
 [Full Changelog](https://github.com/CasperWA/ci-cd/compare/v0.1.0...v1.0.0)
