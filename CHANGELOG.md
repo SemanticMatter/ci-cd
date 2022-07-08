@@ -1,5 +1,23 @@
 # Changelog
 
+## [v1.1.2](https://github.com/CasperWA/ci-cd/tree/v1.1.2) (2022-07-08)
+
+[Full Changelog](https://github.com/CasperWA/ci-cd/compare/v1.1.1...v1.1.2)
+
+**Implemented enhancements:**
+
+- Update package version [\#28](https://github.com/CasperWA/ci-cd/pull/28) ([CasperWA](https://github.com/CasperWA))
+
+**Fixed bugs:**
+
+- Fix usage of invoke tasks for lists [\#30](https://github.com/CasperWA/ci-cd/issues/30)
+- Default `args` for `docs-landing-page` doesn't work [\#27](https://github.com/CasperWA/ci-cd/issues/27)
+- Update internal Python package along with releases [\#26](https://github.com/CasperWA/ci-cd/issues/26)
+
+**Merged pull requests:**
+
+- Default `args` fix for `docs-landing-page` hook [\#31](https://github.com/CasperWA/ci-cd/pull/31) ([CasperWA](https://github.com/CasperWA))
+
 ## [v1.1.1](https://github.com/CasperWA/ci-cd/tree/v1.1.1) (2022-07-06)
 
 [Full Changelog](https://github.com/CasperWA/ci-cd/compare/v1.1.0...v1.1.1)
