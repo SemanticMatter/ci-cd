@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased](https://github.com/SINTEF/ci-cd/tree/HEAD)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.2.1...HEAD)
+
+**Fixed bugs:**
+
+- Properly point to API reference files [\#44](https://github.com/SINTEF/ci-cd/issues/44)
+
+## [v1.2.1](https://github.com/SINTEF/ci-cd/tree/v1.2.1) (2022-08-23)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.2.0...v1.2.1)
+
+**Merged pull requests:**
+
+- Add unit tests for tasks [\#45](https://github.com/SINTEF/ci-cd/pull/45) ([CasperWA](https://github.com/CasperWA))
+- \[Auto-generated\] Update dependencies [\#43](https://github.com/SINTEF/ci-cd/pull/43) ([TEAM4-0](https://github.com/TEAM4-0))
+
 ## [v1.2.0](https://github.com/SINTEF/ci-cd/tree/v1.2.0) (2022-07-18)
 
 [Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.1.2...v1.2.0)
