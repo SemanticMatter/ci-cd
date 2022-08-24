@@ -2,15 +2,27 @@
 
 ## [Unreleased](https://github.com/SINTEF/ci-cd/tree/HEAD)
 
-[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.2.1...HEAD)
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.2.2...HEAD)
 
 **Fixed bugs:**
 
-- Properly point to API reference files [\#44](https://github.com/SINTEF/ci-cd/issues/44)
+- API reference links depends on installation type [\#46](https://github.com/SINTEF/ci-cd/issues/46)
+
+## [v1.2.2](https://github.com/SINTEF/ci-cd/tree/v1.2.2) (2022-08-24)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.2.1...v1.2.2)
+
+**Merged pull requests:**
+
+- API reference links corrections [\#47](https://github.com/SINTEF/ci-cd/pull/47) ([CasperWA](https://github.com/CasperWA))
 
 ## [v1.2.1](https://github.com/SINTEF/ci-cd/tree/v1.2.1) (2022-08-23)
 
 [Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.2.0...v1.2.1)
+
+**Fixed bugs:**
+
+- Properly point to API reference files [\#44](https://github.com/SINTEF/ci-cd/issues/44)
 
 **Merged pull requests:**
 
