@@ -1,14 +1,17 @@
 """Repository management tasks powered by `invoke`.
 More information on `invoke` can be found at [pyinvoke.org](http://www.pyinvoke.org/).
 """
-# pylint: disable=import-outside-toplevel
+import os
 import re
+import shutil
 import sys
 import traceback
+from collections import defaultdict
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import tomlkit
 from invoke import task
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -303,8 +306,6 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
     context, root_repo_path=".", fail_fast=False, pre_commit=False
 ):
     """Update dependencies in specified Python package's `pyproject.toml`."""
-    import tomlkit
-
     if TYPE_CHECKING:  # pragma: no cover
         context: "Context" = context
         root_repo_path: str = root_repo_path
@@ -465,13 +466,38 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             "models or to ensure all class attributes are listed. This input option "
             "can be supplied multiple times."
         ),
+        "full-docs-file": (
+            "A full relative path to a file in which to include everything - even "
+            "those without documentation strings. This may be useful for a file full "
+            "of data models or to ensure all class attributes are listed. This input "
+            "option can be supplied multiple times."
+        ),
+        "special-option": (
+            "A combination of a relative path to a file and a fully formed "
+            "mkdocstrings option that should be added to the generated MarkDown file. "
+            "The combination should be comma-separated. Example: "
+            "'my_module/py_file.py,show_bases:false'. Encapsulate the value in double "
+            'quotation marks (") if including spaces ( ). Important: If multiple '
+            "package-dir options are supplied, the relative path MUST include/start "
+            "with the package-dir value, e.g., "
+            "'\"my_package/my_module/py_file.py,show_bases: false\"'. This input "
+            "option can be supplied multiple times. The options will be accumulated "
+            "for the same file, if given several times."
+        ),
         "relative": (
             "Whether or not to use relative Python import links in the API reference "
             "markdown files."
         ),
         "debug": "Whether or not to print debug statements.",
     },
-    iterable=["package_dir", "unwanted_folder", "unwanted_file", "full_docs_folder"],
+    iterable=[
+        "package_dir",
+        "unwanted_folder",
+        "unwanted_file",
+        "full_docs_folder",
+        "full_docs_file",
+        "special_option",
+    ],
 )
 def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements,line-too-long
     context,
@@ -483,13 +509,12 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branc
     unwanted_folder=None,
     unwanted_file=None,
     full_docs_folder=None,
+    full_docs_file=None,
+    special_option=None,
     relative=False,
     debug=False,
 ):
     """Create the Python API Reference in the documentation."""
-    import os
-    import shutil
-
     if TYPE_CHECKING:  # pragma: no cover
         context: "Context" = context
         pre_clean: bool = pre_clean
@@ -505,6 +530,10 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branc
         unwanted_file: list[str] = ["__init__.py"]
     if not full_docs_folder:
         full_docs_folder: list[str] = []
+    if not full_docs_file:
+        full_docs_file: list[str] = []
+    if not special_option:
+        special_option: list[str] = []
 
     def write_file(full_path: Path, content: str) -> None:
         """Write file with `content` to `full_path`"""
@@ -524,12 +553,33 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branc
     root_repo_path: Path = Path(root_repo_path).resolve()
     package_dirs: list[Path] = [root_repo_path / _ for _ in package_dir]
     docs_api_ref_dir = root_repo_path / docs_folder / "api_reference"
+
     if debug:
         print("package_dirs:", package_dirs, flush=True)
         print("docs_api_ref_dir:", docs_api_ref_dir, flush=True)
         print("unwanted_folder:", unwanted_folder, flush=True)
         print("unwanted_file:", unwanted_file, flush=True)
         print("full_docs_folder:", full_docs_folder, flush=True)
+        print("full_docs_file:", full_docs_file, flush=True)
+        print("special_option:", special_option, flush=True)
+
+    special_options_files = defaultdict(list)
+    for special_file, option in [_.split(",", maxsplit=1) for _ in special_option]:
+        if any("," in _ for _ in (special_file, option)):
+            if debug:
+                print(
+                    "Failing for special-option:",
+                    ",".join([special_file, option]),
+                    flush=True,
+                )
+            sys.exit(
+                "special-option values may only include a single comma (,) to "
+                "separate the relative file path and the mkdocstsrings option."
+            )
+        special_options_files[special_file].append(option)
+
+    if debug:
+        print("special_options_files:", special_options_files, flush=True)
 
     if any("/" in _ for _ in unwanted_folder + unwanted_file):
         sys.exit(
@@ -539,8 +589,8 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branc
 
     pages_template = 'title: "{name}"\n'
     md_template = "# {name}\n\n::: {py_path}\n"
-    no_docstring_template = (
-        md_template + f"{' ' * 4}options:\n{' ' * 6}show_if_no_docstring: true\n"
+    no_docstring_template_addition = (
+        f"{' ' * 4}options:\n{' ' * 6}show_if_no_docstring: true\n"
     )
 
     if docs_api_ref_dir.exists() and pre_clean:
@@ -555,7 +605,10 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branc
         print(f"Writing file: {docs_api_ref_dir / '.pages'}", flush=True)
     write_file(
         full_path=docs_api_ref_dir / ".pages",
-        content=pages_template.format(name="API Reference"),
+        content=(
+            pages_template.format(name="API Reference")
+            + (no_docstring_template_addition if "." in full_docs_folder else "")
+        ),
     )
 
     single_package = len(package_dirs) == 1
@@ -570,10 +623,10 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branc
                     dirnames.remove(unwanted)
 
             relpath = Path(dirpath).relative_to(
-                package if single_package else root_repo_path
+                package if single_package else package.parent
             )
             abspath = (
-                package / relpath if single_package else root_repo_path / relpath
+                package / relpath if single_package else package.parent / relpath
             ).resolve()
             if debug:
                 print("relpath:", relpath, flush=True)
@@ -594,8 +647,13 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branc
                     print(f"Writing file: {docs_sub_dir / '.pages'}", flush=True)
                 write_file(
                     full_path=docs_sub_dir / ".pages",
-                    content=pages_template.format(
-                        name=str(relpath).rsplit("/", maxsplit=1)[-1]
+                    content=(
+                        pages_template.format(name=relpath.name)
+                        + (
+                            no_docstring_template_addition
+                            if str(relpath) in full_docs_folder
+                            else ""
+                        )
                     ),
                 )
 
@@ -620,21 +678,37 @@ def create_api_reference_docs(  # pylint: disable=too-many-locals,too-many-branc
                     package.relative_to(root_repo_path) if relative else package.name
                 )
                 py_path = (
-                    f"{py_path_root}/{relpath}/{filename.stem}".replace("/", ".")
-                    if str(relpath) != "."
-                    else f"{py_path_root}/{filename.stem}".replace("/", ".")
+                    f"{py_path_root}/{filename.stem}".replace("/", ".")
+                    if str(relpath) == "."
+                    or (str(relpath) == package.name and not single_package)
+                    else f"{py_path_root}/{relpath}/{filename.stem}".replace("/", ".")
                 )
                 if debug:
                     print("filename:", filename, flush=True)
                     print("py_path:", py_path, flush=True)
 
-                # For special folders we want to include EVERYTHING, even if it doesn't
-                # have a doc-string
-                template = (
-                    no_docstring_template
-                    if str(relpath) in full_docs_folder
-                    else md_template
+                relative_file_path = (
+                    str(filename) if str(relpath) == "." else str(relpath / filename)
                 )
+
+                # For special files we want to include EVERYTHING, even if it doesn't
+                # have a doc-string
+                template = md_template + (
+                    no_docstring_template_addition
+                    if relative_file_path in full_docs_file
+                    else ""
+                )
+
+                # Include special options, if any, for certain files.
+                if relative_file_path in special_options_files:
+                    template += (
+                        f"{' ' * 4}options:\n" if "options:\n" not in template else ""
+                    )
+                    template += "\n".join(
+                        f"{' ' * 6}{option}"
+                        for option in special_options_files[relative_file_path]
+                    )
+                    template += "\n"
 
                 if debug:
                     print("template:", template, flush=True)
