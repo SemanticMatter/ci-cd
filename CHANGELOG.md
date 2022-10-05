@@ -2,15 +2,48 @@
 
 ## [Unreleased](https://github.com/SINTEF/ci-cd/tree/HEAD)
 
-[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.2.2...HEAD)
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.0...HEAD)
 
 **Fixed bugs:**
 
-- API reference links depends on installation type [\#46](https://github.com/SINTEF/ci-cd/issues/46)
+- Local workflows out-of-date [\#62](https://github.com/SINTEF/ci-cd/issues/62)
+
+## [v1.3.0](https://github.com/SINTEF/ci-cd/tree/v1.3.0) (2022-10-05)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.2.2...v1.3.0)
+
+**Implemented enhancements:**
+
+- Custom API ref file options [\#57](https://github.com/SINTEF/ci-cd/issues/57)
+- Test installing Python package after building it [\#56](https://github.com/SINTEF/ci-cd/issues/56)
+- Support multi-package repositories [\#55](https://github.com/SINTEF/ci-cd/issues/55)
+- Use custom Python version for CI tests [\#54](https://github.com/SINTEF/ci-cd/issues/54)
+
+**Fixed bugs:**
+
+- Invoke task "update docs index" missing defaults [\#53](https://github.com/SINTEF/ci-cd/issues/53)
+
+**Closed issues:**
+
+- Documentation issue [\#52](https://github.com/SINTEF/ci-cd/issues/52)
+
+**Merged pull requests:**
+
+- Update local workflows with new input names [\#63](https://github.com/SINTEF/ci-cd/pull/63) ([CasperWA](https://github.com/CasperWA))
+- Custom Python versions for jobs [\#61](https://github.com/SINTEF/ci-cd/pull/61) ([CasperWA](https://github.com/CasperWA))
+- Custom API reference options [\#60](https://github.com/SINTEF/ci-cd/pull/60) ([CasperWA](https://github.com/CasperWA))
+- Fix documentation typos [\#59](https://github.com/SINTEF/ci-cd/pull/59) ([CasperWA](https://github.com/CasperWA))
+- Support multiple packages in the same repo [\#58](https://github.com/SINTEF/ci-cd/pull/58) ([CasperWA](https://github.com/CasperWA))
+- \[Auto-generated\] Update dependencies [\#50](https://github.com/SINTEF/ci-cd/pull/50) ([TEAM4-0](https://github.com/TEAM4-0))
+- \[Auto-generated\] Update dependencies [\#48](https://github.com/SINTEF/ci-cd/pull/48) ([TEAM4-0](https://github.com/TEAM4-0))
 
 ## [v1.2.2](https://github.com/SINTEF/ci-cd/tree/v1.2.2) (2022-08-24)
 
 [Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.2.1...v1.2.2)
+
+**Fixed bugs:**
+
+- API reference links depends on installation type [\#46](https://github.com/SINTEF/ci-cd/issues/46)
 
 **Merged pull requests:**
 
