@@ -2,11 +2,19 @@
 
 ## [Unreleased](https://github.com/SINTEF/ci-cd/tree/HEAD)
 
-[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.0...HEAD)
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.1...HEAD)
 
 **Fixed bugs:**
 
-- Local workflows out-of-date [\#62](https://github.com/SINTEF/ci-cd/issues/62)
+- Nested modules not represented properly [\#64](https://github.com/SINTEF/ci-cd/issues/64)
+
+## [v1.3.1](https://github.com/SINTEF/ci-cd/tree/v1.3.1) (2022-10-06)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.0...v1.3.1)
+
+**Merged pull requests:**
+
+- Ensure API reference documentation works for multiple large packages [\#65](https://github.com/SINTEF/ci-cd/pull/65) ([CasperWA](https://github.com/CasperWA))
 
 ## [v1.3.0](https://github.com/SINTEF/ci-cd/tree/v1.3.0) (2022-10-05)
 
@@ -21,6 +29,7 @@
 
 **Fixed bugs:**
 
+- Local workflows out-of-date [\#62](https://github.com/SINTEF/ci-cd/issues/62)
 - Invoke task "update docs index" missing defaults [\#53](https://github.com/SINTEF/ci-cd/issues/53)
 
 **Closed issues:**
