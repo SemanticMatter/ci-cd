@@ -1,16 +1,25 @@
 # Changelog
 
-## [Unreleased](https://github.com/SINTEF/ci-cd/tree/HEAD)
+## [v1.3.2](https://github.com/SINTEF/ci-cd/tree/v1.3.2) (2022-10-10)
 
-[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.1...HEAD)
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.1...v1.3.2)
 
 **Fixed bugs:**
 
-- Nested modules not represented properly [\#64](https://github.com/SINTEF/ci-cd/issues/64)
+- Don't change `.pages` in API ref hook [\#66](https://github.com/SINTEF/ci-cd/issues/66)
+
+**Merged pull requests:**
+
+- \[Auto-generated\] Update dependencies [\#68](https://github.com/SINTEF/ci-cd/pull/68) ([TEAM4-0](https://github.com/TEAM4-0))
+- Ensure `.pages` does not get mkdocstrings option [\#67](https://github.com/SINTEF/ci-cd/pull/67) ([CasperWA](https://github.com/CasperWA))
 
 ## [v1.3.1](https://github.com/SINTEF/ci-cd/tree/v1.3.1) (2022-10-06)
 
 [Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.0...v1.3.1)
+
+**Fixed bugs:**
+
+- Nested modules not represented properly [\#64](https://github.com/SINTEF/ci-cd/issues/64)
 
 **Merged pull requests:**
 
