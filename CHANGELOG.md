@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased](https://github.com/SINTEF/ci-cd/tree/HEAD)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.3...HEAD)
+
+**Implemented enhancements:**
+
+- Support setting python version restrictions in dependencies [\#70](https://github.com/SINTEF/ci-cd/issues/70)
+
+## [v1.3.3](https://github.com/SINTEF/ci-cd/tree/v1.3.3) (2022-10-12)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.2...v1.3.3)
+
+**Merged pull requests:**
+
+- Extend dependency spec regex [\#71](https://github.com/SINTEF/ci-cd/pull/71) ([CasperWA](https://github.com/CasperWA))
+
 ## [v1.3.2](https://github.com/SINTEF/ci-cd/tree/v1.3.2) (2022-10-10)
 
 [Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.1...v1.3.2)
