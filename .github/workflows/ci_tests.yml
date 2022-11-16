@@ -143,6 +143,11 @@ on:
         required: false
         type: string
         default: ","
+      warnings_as_errors:
+        description: "Build the documentation in 'strict' mode, treating warnings as errors. **Important**: If this is set to `false`, beware that the documentation may _not_ be rendered or built as one may have intended. Default: `true`."
+        required: false
+        type: boolean
+        default: true
       debug:
         description: "Whether to do print extra debug statements."
         required: false
@@ -351,5 +356,11 @@ jobs:
           "${REPLACEMENTS[@]}"
 
     - name: Build MkDocs documentation
-      #run: mkdocs build --strict
-      run: mkdocs build
+      run: |
+        if [ "${{ inputs.warnings_as_errors }}" == "true" ]; then
+          STRICT="--strict"
+        else
+          STRICT=
+          echo "::warning file=ci_tests.yml,line=366,col=9,endColumn=31::Beware that the documentation may succeed building, but will not be rendered or built as intended. To ensure this is the case, set `warnings_as_errors` to `true` (using `--strict`)."
+        fi
+        mkdocs build ${STRICT}
