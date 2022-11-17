@@ -2,15 +2,40 @@
 
 ## [Unreleased](https://github.com/SINTEF/ci-cd/tree/HEAD)
 
-[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.3...HEAD)
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.5...HEAD)
+
+**Fixed bugs:**
+
+- Undo commit d525ea0f069b6615aa352a7f385c21b31f29b985 [\#77](https://github.com/SINTEF/ci-cd/issues/77)
+
+## [v1.3.5](https://github.com/SINTEF/ci-cd/tree/v1.3.5) (2022-11-16)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.4...v1.3.5)
+
+**Merged pull requests:**
+
+- Make `--strict` toggleable for `mkdocs build` [\#78](https://github.com/SINTEF/ci-cd/pull/78) ([CasperWA](https://github.com/CasperWA))
+- \[Auto-generated\] Update dependencies [\#76](https://github.com/SINTEF/ci-cd/pull/76) ([TEAM4-0](https://github.com/TEAM4-0))
+
+## [v1.3.4](https://github.com/SINTEF/ci-cd/tree/v1.3.4) (2022-10-31)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.3...v1.3.4)
 
 **Implemented enhancements:**
 
-- Support setting python version restrictions in dependencies [\#70](https://github.com/SINTEF/ci-cd/issues/70)
+- Support setting full versions in pre-commit config [\#72](https://github.com/SINTEF/ci-cd/issues/72)
+
+**Merged pull requests:**
+
+- Only freeze repo hook version if using 'v1' [\#73](https://github.com/SINTEF/ci-cd/pull/73) ([CasperWA](https://github.com/CasperWA))
 
 ## [v1.3.3](https://github.com/SINTEF/ci-cd/tree/v1.3.3) (2022-10-12)
 
 [Full Changelog](https://github.com/SINTEF/ci-cd/compare/v1.3.2...v1.3.3)
+
+**Implemented enhancements:**
+
+- Support setting python version restrictions in dependencies [\#70](https://github.com/SINTEF/ci-cd/issues/70)
 
 **Merged pull requests:**
 
