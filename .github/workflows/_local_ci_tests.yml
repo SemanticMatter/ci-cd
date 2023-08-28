@@ -35,12 +35,13 @@ jobs:
 
   pytest:
     name: pytest
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.7", "3.8", "3.9", "3.10"]
+        os: ["ubuntu-latest", "windows-latest"]
 
     steps:
     - name: Checkout repository
@@ -66,3 +67,66 @@ jobs:
       with:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
+
+  # These jobs are mainly to test a default run of the hooks including `--pre-commit`
+  run_hooks:
+    name: Run custom pre-commit hooks
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.7", "3.10"]
+        os: ["ubuntu-latest", "windows-latest"]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version}}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version}}
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install -U pip
+        pip install -U setuptools wheel flit
+        pip install -e .
+        pip install -U pre-commit
+
+    # docs-api-reference
+    - name: Run docs-api-reference ('ci-cd create-api-reference-docs')
+      run: python .github/utils/run_hooks.py docs-api-reference
+
+    - name: Run docs-api-reference ('ci-cd create-api-reference-docs') (cmd)
+      if: runner.os == 'Windows'
+      run: python .github/utils/run_hooks.py docs-api-reference
+      shell: cmd
+
+    # docs-landing-page
+    - name: Run docs-landing-page ('ci-cd create-docs-index')
+      run: python .github/utils/run_hooks.py docs-landing-page
+
+    - name: Run docs-landing-page ('ci-cd create-docs-index') (cmd)
+      if: runner.os == 'Windows'
+      run: python .github/utils/run_hooks.py docs-landing-page
+      shell: cmd
+
+    # update-pyproject
+    - name: Run update-pyproject ('ci-cd update-deps')
+      run: python .github/utils/run_hooks.py update-pyproject
+
+    - name: Run update-pyproject ('ci-cd update-deps') (cmd)
+      if: runner.os == 'Windows'
+      run: python .github/utils/run_hooks.py update-pyproject
+      shell: cmd
+
+    # set-version
+    - name: Run 'ci-cd setver'
+      run: python .github/utils/run_hooks.py set-version
+
+    - name: Run 'ci-cd setver' (cmd)
+      if: runner.os == 'Windows'
+      run: python .github/utils/run_hooks.py set-version
+      shell: cmd
