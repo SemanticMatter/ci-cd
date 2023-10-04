@@ -1,10 +1,10 @@
-"""Tests for utils.py"""
+"""Tests for utils/versions.py"""
 import pytest
 
 
 def test_semanticversion() -> None:
     """Test SemanticVersion class."""
-    from ci_cd.utils import SemanticVersion
+    from ci_cd.utils.versions import SemanticVersion
 
     valid_inputs = [
         "1.0.0",
@@ -88,7 +88,7 @@ def test_semanticversion() -> None:
 
 def test_semanticversion_invalid() -> None:
     """Test SemanticVersion class with invalid inputs."""
-    from ci_cd.utils import SemanticVersion
+    from ci_cd.utils.versions import SemanticVersion
 
     invalid_inputs = [
         ("1.0.0-", "cannot be parsed as a semantic version"),
@@ -135,7 +135,7 @@ def test_semanticversion_invalid_comparisons() -> None:
     """Test invalid comparisons with SemanticVersion class."""
     import operator
 
-    from ci_cd.utils import SemanticVersion
+    from ci_cd.utils.versions import SemanticVersion
 
     operators_mapping = {
         ">": operator.gt,
@@ -159,7 +159,7 @@ def test_semanticversion_invalid_comparisons() -> None:
 
 def test_semanticversion_next_version() -> None:
     """Test the next_version method of SemanticVersion class."""
-    from ci_cd.utils import SemanticVersion
+    from ci_cd.utils.versions import SemanticVersion
 
     valid_inputs = [
         ("1.0.0", "major", "2.0.0"),
@@ -173,7 +173,7 @@ def test_semanticversion_next_version() -> None:
 
 def test_semanticversion_next_version_invalid() -> None:
     """Test the next_version method of SemanticVersion class with invalid inputs."""
-    from ci_cd.utils import SemanticVersion
+    from ci_cd.utils.versions import SemanticVersion
 
     invalid_inputs = [
         "invalid",

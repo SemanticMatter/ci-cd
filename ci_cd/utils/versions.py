@@ -1,38 +1,9 @@
-"""Repository management tasks powered by `invoke`.
-More information on `invoke` can be found at [pyinvoke.org](http://www.pyinvoke.org/).
-"""
-import logging
-import platform
+"""Handle versions."""
 import re
-from enum import Enum
-from pathlib import Path
 from typing import TYPE_CHECKING, no_type_check
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import Any, Optional, Tuple, Union
-
-
-LOGGER = logging.getLogger(__file__)
-LOGGER.setLevel(logging.DEBUG)
-
-
-class Emoji(str, Enum):
-    """Unicode strings for certain emojis."""
-
-    def __new__(cls, value: str) -> "Emoji":
-        obj = str.__new__(cls, value)
-        if platform.system() == "Windows":
-            # Windows does not support unicode emojis, so we replace them with
-            # their corresponding unicode escape sequences
-            obj._value_ = value.encode("unicode_escape").decode("utf-8")
-        else:
-            obj._value_ = value
-        return obj
-
-    PARTY_POPPER = "\U0001f389"
-    CHECK_MARK = "\u2714"
-    CROSS_MARK = "\u274c"
-    CURLY_LOOP = "\u27b0"
+    from typing import Any, Optional, Union
 
 
 class SemanticVersion(str):
@@ -294,17 +265,3 @@ class SemanticVersion(str):
             return self.__class__(f"{self.major}.{self.minor + 1}.0")
 
         return self.__class__(f"{self.major}.{self.minor}.{self.patch + 1}")
-
-
-def update_file(
-    filename: Path, sub_line: "Tuple[str, str]", strip: "Optional[str]" = None
-) -> None:
-    """Utility function for tasks to read, update, and write files"""
-    if strip is None and filename.suffix == ".md":
-        # Keep special white space endings for markdown files
-        strip = "\n"
-    lines = [
-        re.sub(sub_line[0], sub_line[1], line.rstrip(strip))
-        for line in filename.read_text(encoding="utf8").splitlines()
-    ]
-    filename.write_text("\n".join(lines) + "\n", encoding="utf8")
