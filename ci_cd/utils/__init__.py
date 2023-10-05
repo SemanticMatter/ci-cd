@@ -1,5 +1,5 @@
 """Utilities for CI/CD."""
-from .console_printing import Emoji
+from .console_printing import Emoji, error_msg, info_msg, warning_msg
 from .file_io import update_file
 from .versions import (
     SemanticVersion,
@@ -13,6 +13,9 @@ from .versions import (
 
 __all__ = [
     "Emoji",
+    "error_msg",
+    "warning_msg",
+    "info_msg",
     "update_file",
     "SemanticVersion",
     "parse_ignore_entries",

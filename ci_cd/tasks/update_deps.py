@@ -20,12 +20,15 @@ from ci_cd.exceptions import CICDException, InputError, UnableToResolve
 from ci_cd.utils import (
     Emoji,
     create_ignore_rules,
+    error_msg,
     ignore_version,
+    info_msg,
     parse_ignore_entries,
     parse_ignore_rules,
     regenerate_requirement,
     update_file,
     update_specifier_set,
+    warning_msg,
 )
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -139,10 +142,10 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                 f"Could not parse requirement {dependency!r} from pyproject.toml: "
                 f"{exc}"
             )
-            LOGGER.warning(msg)
+            LOGGER.error(msg)
             if fail_fast:
-                sys.exit(f"{Emoji.CROSS_MARK.value} {msg}")
-            print(msg, flush=True)
+                sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
+            print(error_msg(msg), flush=True)
             error = True
             continue
         LOGGER.debug("Parsed requirement: %r", parsed_requirement)
@@ -158,7 +161,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                 "will be skipped."
             )
             LOGGER.info(msg)
-            print(msg, flush=True)
+            print(info_msg(msg), flush=True)
             already_handled_packages.add(parsed_requirement.name)
             continue
 
@@ -169,7 +172,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                 "restricted and will be skipped. Consider adding version restrictions."
             )
             LOGGER.warning(msg)
-            print(msg, flush=True)
+            print(warning_msg(msg), flush=True)
             already_handled_packages.add(parsed_requirement.name)
             continue
 
@@ -188,10 +191,10 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                 "Could not parse package and version from 'pip index versions' output "
                 f"for line:\n  {package_latest_version_line}"
             )
-            LOGGER.warning(msg)
+            LOGGER.error(msg)
             if fail_fast:
-                sys.exit(f"{Emoji.CROSS_MARK.value} {msg}")
-            print(msg, flush=True)
+                sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
+            print(error_msg(msg), flush=True)
             already_handled_packages.add(parsed_requirement.name)
             error = True
             continue
@@ -208,10 +211,10 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                 f"({parsed_requirement.name!r}) does not match the name returned from "
                 f"'pip index versions': {pip_index_package_name!r}"
             )
-            LOGGER.warning(msg)
+            LOGGER.error(msg)
             if fail_fast:
-                sys.exit(f"{Emoji.CROSS_MARK.value} {msg}")
-            print(msg, flush=True)
+                sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
+            print(error_msg(msg), flush=True)
             already_handled_packages.add(parsed_requirement.name)
             error = True
             continue
@@ -281,10 +284,10 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                     f"{parsed_requirement.specifier} for package "
                     f"{parsed_requirement.name!r}."
                 )
-                LOGGER.warning(msg)
+                LOGGER.error(msg)
                 if fail_fast:
-                    sys.exit(f"{Emoji.CROSS_MARK.value} {msg}")
-                print(msg, flush=True)
+                    sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
+                print(error_msg(msg), flush=True)
                 already_handled_packages.add(parsed_requirement.name)
                 error = True
                 continue
@@ -310,10 +313,10 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                 f"version range specifier set: {parsed_requirement.specifier}. "
                 f"Package: {parsed_requirement.name}. Latest version: {latest_version}"
             )
-            LOGGER.warning(msg)
+            LOGGER.error(msg)
             if fail_fast:
-                sys.exit(f"{Emoji.CROSS_MARK.value} {msg}")
-            print(msg, flush=True)
+                sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
+            print(error_msg(msg), flush=True)
             already_handled_packages.add(parsed_requirement.name)
             error = True
             continue
