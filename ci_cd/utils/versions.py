@@ -3,7 +3,7 @@ import operator
 import re
 from typing import TYPE_CHECKING, no_type_check
 
-from pip._vendor.packaging.specifiers import Specifier, SpecifierSet
+from pip._vendor.packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 
 from ci_cd.exceptions import InputError, InputParserError, UnableToResolve
 
@@ -420,8 +420,17 @@ def create_ignore_rules(specifier_set: SpecifierSet) -> "IgnoreRules":
     }
 
 
-def _ignore_version_rules(latest: list[str], version_rules: "IgnoreVersions") -> bool:
-    """Determine whether to ignore package based on `versions` input."""
+def _ignore_version_rules_semver(
+    latest: list[str], version_rules: "IgnoreVersions"
+) -> bool:
+    """Determine whether to ignore package based on `versions` input.
+
+    Explicitly parsing as a SemanticVersion, not expecting Python (pip)-specific
+    version specification.
+
+    NOTE: While this function is currently not used, it is intended to be kept for a
+        future support of multiple frameworks (not just Python/pip).
+    """
     semver_latest = SemanticVersion(".".join(latest))
     operators_mapping = {
         ">": operator.gt,
@@ -480,6 +489,25 @@ def _ignore_version_rules(latest: list[str], version_rules: "IgnoreVersions") ->
 
     # If ALL version rules AND'ed together are True, ignore the version.
     return bool(decision_version_rules and all(decision_version_rules))
+
+
+def _ignore_version_rules_specifier_set(
+    latest: list[str], version_rules: "IgnoreVersions"
+) -> bool:
+    """Determine whether to ignore package based on `versions` input.
+
+    Use Python (pip)-specific version specification.
+    """
+    if not version_rules:
+        return False
+
+    try:
+        specifier_set = SpecifierSet(
+            ",".join(f"{_['operator']}{_['version']}" for _ in version_rules)
+        )
+    except InvalidSpecifier as exc:
+        raise InputError("Invalid version specifier") from exc
+    return SemanticVersion(".".join(latest)) in specifier_set
 
 
 def _ignore_semver_rules(
@@ -550,7 +578,7 @@ def ignore_version(
         return True
 
     # version rules
-    if _ignore_version_rules(latest, version_rules):
+    if _ignore_version_rules_specifier_set(latest, version_rules):
         return True
 
     # semver rules

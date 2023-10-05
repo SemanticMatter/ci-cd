@@ -973,15 +973,16 @@ def test_ignore_version_fails() -> None:
     from ci_cd.exceptions import InputError, InputParserError
     from ci_cd.utils.versions import ignore_version
 
-    with pytest.raises(
-        InputParserError, match="only supports the following operators:"
-    ):
-        ignore_version(
-            current="1.1.1".split("."),
-            latest="2.2.2".split("."),
-            version_rules=[{"operator": "===", "version": "2.2.2"}],
-            semver_rules={},
-        )
+    # This is only true when using `_ignore_version_rules_semver()`
+    # with pytest.raises(
+    #     InputParserError, match="only supports the following operators:"
+    # ):
+    #     ignore_version(
+    #         current="1.1.1".split("."),
+    #         latest="2.2.2".split("."),
+    #         version_rules=[{"operator": "===", "version": "2.2.2"}],
+    #         semver_rules={},
+    #     )
 
     with pytest.raises(
         InputParserError, match=r"^Only valid values for 'version-update' are.*"
@@ -993,10 +994,7 @@ def test_ignore_version_fails() -> None:
             semver_rules={"version-update": ["build"]},  # type: ignore[list-item]
         )
 
-    with pytest.raises(
-        InputError,
-        match="when using the '~=' operator more than a single version part",
-    ):
+    with pytest.raises(InputError):
         ignore_version(
             current="1.1.1".split("."),
             latest="2.2.2".split("."),
