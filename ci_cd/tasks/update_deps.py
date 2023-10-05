@@ -369,19 +369,14 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                 (re.escape(dependency), updated_dependency.replace('"', "'")),
             )
             already_handled_packages.add(parsed_requirement.name)
-            updated_packages[parsed_requirement.name] = (
-                ",".join(
-                    str(_)
-                    for _ in sorted(
-                        updated_specifier_set,
-                        key=lambda spec: spec.operator,
-                        reverse=True,
-                    )
+            updated_packages[parsed_requirement.name] = ",".join(
+                str(_)
+                for _ in sorted(
+                    updated_specifier_set,
+                    key=lambda spec: spec.operator,
+                    reverse=True,
                 )
-                + f" ; {parsed_requirement.marker}"
-                if parsed_requirement.marker
-                else ""
-            )
+            ) + (f" ; {parsed_requirement.marker}" if parsed_requirement.marker else "")
 
     if error:
         sys.exit(
