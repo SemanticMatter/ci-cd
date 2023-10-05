@@ -3,10 +3,25 @@ import operator
 import re
 from typing import TYPE_CHECKING, no_type_check
 
-from ci_cd.exceptions import InputError, InputParserError
+from pip._vendor.packaging.specifiers import Specifier, SpecifierSet
+
+from ci_cd.exceptions import InputError, InputParserError, UnableToResolve
 
 if TYPE_CHECKING:  # pragma: no cover
     from typing import Any, Literal, Optional, Union
+
+    from pip._vendor.packaging.markers import Marker
+    from pip._vendor.packaging.requirements import Requirement
+
+    IgnoreEntry = dict[Literal["dependency-name", "versions", "update-types"], str]
+
+    IgnoreRules = dict[Literal["versions", "update-types"], list[str]]
+    IgnoreRulesCollection = dict[str, IgnoreRules]
+
+    IgnoreVersions = list[dict[Literal["operator", "version"], str]]
+    IgnoreUpdateTypes = dict[
+        Literal["version-update"], list[Literal["major", "minor", "patch"]]
+    ]
 
 
 class SemanticVersion(str):
@@ -270,9 +285,7 @@ class SemanticVersion(str):
         return self.__class__(f"{self.major}.{self.minor}.{self.patch + 1}")
 
 
-def parse_ignore_entries(
-    entries: list[str], separator: str
-) -> 'dict[str, dict[Literal["versions", "update-types"], list[str]]]':
+def parse_ignore_entries(entries: list[str], separator: str) -> "IgnoreRulesCollection":
     """Parser for the `--ignore` option.
 
     The `--ignore` option values are given as key/value-pairs in the form:
@@ -287,9 +300,7 @@ def parse_ignore_entries(
         A parsed mapping of dependencies to ignore rules.
 
     """
-    ignore_entries: 'dict[str, dict[Literal["versions", "update-types"], list[str]]]' = (
-        {}
-    )
+    ignore_entries: "IgnoreRulesCollection" = {}
 
     for entry in entries:
         pairs = entry.split(separator, maxsplit=2)
@@ -298,12 +309,10 @@ def parse_ignore_entries(
                 raise InputParserError(
                     "More than three key/value-pairs were given for an `--ignore` "
                     "option, while there are only three allowed key names. Input "
-                    f"value: --ignore={entry}"
+                    f"value: --ignore={entry!r}"
                 )
 
-        ignore_entry: 'dict[Literal["dependency-name", "versions", "update-types"], str]' = (  # pylint: disable=line-too-long
-            {}
-        )
+        ignore_entry: "IgnoreEntry" = {}
         for pair in pairs:
             match = re.match(
                 r"^(?P<key>dependency-name|versions|update-types)=(?P<value>.*)$",
@@ -312,7 +321,7 @@ def parse_ignore_entries(
             if match is None:
                 raise InputParserError(
                     f"Could not parse ignore configuration: {pair!r} (part of the "
-                    f"ignore option: {entry!r}"
+                    f"ignore option: {entry!r})"
                 )
             if match.group("key") in ignore_entry:
                 raise InputParserError(
@@ -342,8 +351,8 @@ def parse_ignore_entries(
 
 
 def parse_ignore_rules(
-    rules: "dict[Literal['versions', 'update-types'], list[str]]",
-) -> "tuple[list[dict[Literal['operator', 'version'], str]], dict[Literal['version-update'], list[Literal['major', 'minor', 'patch']]]]":  # pylint: disable=line-too-long
+    rules: "IgnoreRules",
+) -> "tuple[IgnoreVersions, IgnoreUpdateTypes]":
     """Parser for a specific set of ignore rules.
 
     Parameters:
@@ -357,10 +366,8 @@ def parse_ignore_rules(
         # Ignore package altogether
         return [{"operator": ">=", "version": "0"}], {}
 
-    versions: 'list[dict[Literal["operator", "version"], str]]' = []
-    update_types: "dict[Literal['version-update'], list[Literal['major', 'minor', 'patch']]]" = (  # pylint: disable=line-too-long
-        {}
-    )
+    versions: "IgnoreVersions" = []
+    update_types: "IgnoreUpdateTypes" = {}
 
     if "versions" in rules:
         for versions_entry in rules["versions"]:
@@ -397,10 +404,41 @@ def parse_ignore_rules(
     return versions, update_types
 
 
-def _ignore_version_rules(
-    latest: list[str],
-    version_rules: "list[dict[Literal['operator', 'version'], str]]",
-) -> bool:
+def create_ignore_rules(specifier_set: SpecifierSet) -> "IgnoreRules":
+    """Create ignore rules based on version specifier set."""
+    ignore_rules: list[str] = []
+    for specifier in specifier_set:
+        if specifier.operator == "!=":
+            ignore_rules.append(f"=={specifier.version}")
+        elif specifier.operator == "<=":
+            ignore_rules.append(f">{specifier.version}")
+        elif specifier.operator == "<":
+            ignore_rules.append(f">={specifier.version}")
+        elif specifier.operator == ">=":
+            ignore_rules.append(f"<{specifier.version}")
+        elif specifier.operator == ">":
+            ignore_rules.append(f"<={specifier.version}")
+        elif specifier.operator == "~=":
+            # The '~=' operator is a special case, as it's not a direct comparison
+            # operator, but rather a range operator. The '~=' operator is used to
+            # specify a minimum version, but with some flexibility in the last part.
+            # E.g., '~=2.0' is equivalent to '>=2.0.0, <2.1.0' or '>=2.0, <2.1' or
+            # '>=2.0, ==2.*'.
+
+            ignore_rules.append(f"<{specifier.version}")
+
+            # We do not ignore the intended upper limit of the range, as this would be
+            # counter-productive.
+        else:
+            raise NotImplementedError(
+                "Unknown or unsupported version specifier operator: "
+                f"{specifier.operator!r}"
+            )
+
+    return {"versions": ignore_rules}
+
+
+def _ignore_version_rules(latest: list[str], version_rules: "IgnoreVersions") -> bool:
     """Determine whether to ignore package based on `versions` input."""
     semver_latest = SemanticVersion(".".join(latest))
     operators_mapping = {
@@ -423,6 +461,13 @@ def _ignore_version_rules(
             ):
                 decision_version_rule = True
         elif "~=" == version_rule["operator"]:
+            # The '~=' operator is a special case, as it's not a direct comparison
+            # operator, but rather a range operator. The '~=' operator is used to
+            # specify a minimum version, but with some flexibility in the last part.
+            # E.g., '~=2.0' is equivalent to '>=2.0.0, <2.1.0' or '>=2.0, <2.1' or
+            # '>=2.0, ==2.*'.
+            # Furthermore, ~=X is not allowed. A minor version MUST be specified.
+
             if "." not in version_rule["version"]:
                 raise InputError(
                     "Ignore option value error. For the 'versions' config key, when "
@@ -458,7 +503,7 @@ def _ignore_version_rules(
 def _ignore_semver_rules(
     current: list[str],
     latest: list[str],
-    semver_rules: "dict[Literal['version-update'], list[Literal['major', 'minor', 'patch']]]",  # pylint: disable=line-too-long
+    semver_rules: "IgnoreUpdateTypes",
 ) -> bool:
     """If ANY of the semver rules are True, ignore the version."""
     if any(
@@ -498,8 +543,8 @@ def _ignore_semver_rules(
 def ignore_version(
     current: list[str],
     latest: list[str],
-    version_rules: "list[dict[Literal['operator', 'version'], str]]",
-    semver_rules: "dict[Literal['version-update'], list[Literal['major', 'minor', 'patch']]]",  # pylint: disable=line-too-long
+    version_rules: "IgnoreVersions",
+    semver_rules: "IgnoreUpdateTypes",
 ) -> bool:
     """Determine whether the latest version can be ignored.
 
@@ -533,3 +578,153 @@ def ignore_version(
         return True
 
     return False
+
+
+def regenerate_requirement(
+    requirement: "Requirement",
+    *,
+    name: "Optional[str]" = None,
+    extras: "Optional[set[str]]" = None,
+    specifier: "Optional[Union[SpecifierSet, str]]" = None,
+    url: "Optional[str]" = None,
+    marker: "Optional[Union[Marker, str]]" = None,
+    post_name_space: bool = False,
+) -> str:
+    """Regenerate a requirement string including the given parameters.
+
+    Parameters:
+        requirement: The requirement to regenerate and fallback to.
+        name: A new name to use for the requirement.
+        extras: New extras to use for the requirement.
+        specifier: A new specifier set to use for the requirement.
+        url: A new URL to use for the requirement.
+        marker: A new marker to use for the requirement.
+        post_name_space: Whether or not to add a single space after the name (possibly
+            including extras), but before the specifier.
+
+    Returns:
+        The regenerated requirement string.
+
+    """
+    updated_dependency = name or requirement.name
+
+    if extras or requirement.extras:
+        formatted_extras = ",".join(sorted(extras or requirement.extras))
+        updated_dependency += f"[{formatted_extras}]"
+
+    if post_name_space:
+        updated_dependency += " "
+
+    if specifier or requirement.specifier:
+        updated_dependency += str(specifier or requirement.specifier)
+
+    if url or requirement.url:
+        updated_dependency += f"@ {url or requirement.url}"
+        if marker or requirement.marker:
+            updated_dependency += " "
+
+    if marker or requirement.marker:
+        updated_dependency += f"; {marker or requirement.marker}"
+
+    return updated_dependency
+
+
+def update_specifier_set(
+    latest_version: "Union[SemanticVersion, str]", current_specifier_set: SpecifierSet
+) -> SpecifierSet:
+    """Update the specifier set to include the latest version."""
+    latest_version = SemanticVersion(latest_version)
+    new_specifier_set = set(current_specifier_set)
+    updated_specifiers = []
+    split_latest_version = latest_version.split(".")
+
+    if latest_version in current_specifier_set:
+        # The latest version is already included in the specifier set.
+        # Update specifier set if the latest version is included via a `~=` or a `==`
+        # operator.
+        for specifier in current_specifier_set:
+            if specifier.operator in ["~=", "=="]:
+                split_specifier_version = specifier.version.split(".")
+                updated_version = ".".join(
+                    split_latest_version[: len(split_specifier_version)]
+                )
+                updated_specifiers.append(f"{specifier.operator}{updated_version}")
+                new_specifier_set.remove(specifier)
+                break
+    else:
+        # The latest version is *not* included in the specifier set.
+        # Expect the latest version to be greater than the current version range.
+        for specifier in current_specifier_set:
+            # Simply expand the range if the version range is capped through a specifier
+            # using either of the `<` or `<=` operators.
+            if specifier.operator == "<=":
+                split_specifier_version = specifier.version.split(".")
+                updated_version = ".".join(
+                    split_latest_version[: len(split_specifier_version)]
+                )
+                updated_specifiers.append(f"{specifier.operator}{updated_version}")
+                new_specifier_set.remove(specifier)
+                break
+
+            if specifier.operator == "<":
+                # Update to include latest version by upping to the next
+                # version up from the latest version
+                split_specifier_version = specifier.version.split(".")
+
+                # Up only the last version segment of the latest version according to
+                # what version segments are defined in the specifier version.
+                if len(split_specifier_version) == 1:
+                    updated_version = str(latest_version.next_version("major").major)
+                elif len(split_specifier_version) == 2:
+                    updated_version = ".".join(
+                        latest_version.next_version("minor").split(".")[:2]
+                    )
+                elif len(split_specifier_version) == 3:
+                    updated_version = latest_version.next_version("patch")
+                else:
+                    raise UnableToResolve(
+                        "Invalid/unable to handle number of version parts: "
+                        f"{len(split_specifier_version)}"
+                    )
+
+                updated_specifiers.append(f"{specifier.operator}{updated_version}")
+                new_specifier_set.remove(specifier)
+                break
+
+            if specifier.operator == "~=":
+                # Expand and change ~= to >= and < operators if the latest version
+                # changes major version. Otherwise, update to include latest version as
+                # the minimum version
+                current_version = SemanticVersion(specifier.version)
+
+                if latest_version.major > current_version.major:
+                    # Expand and change ~= to >= and < operators
+
+                    # >= current_version (fully padded)
+                    updated_specifiers.append(f">={current_version}")
+
+                    # < next major version up from latest_version
+                    updated_specifiers.append(
+                        f"<{str(latest_version.next_version('major').major)}"
+                    )
+                else:
+                    # Keep the ~= operator, but update to include the latest version as
+                    # the minimum version
+                    split_specifier_version = specifier.version.split(".")
+                    updated_version = ".".join(
+                        split_latest_version[: len(split_specifier_version)]
+                    )
+                    updated_specifiers.append(f"{specifier.operator}{updated_version}")
+
+                new_specifier_set.remove(specifier)
+                break
+
+    # Finally, add updated specifier(s) to new specifier set or raise.
+    if updated_specifiers:
+        new_specifier_set |= set(Specifier(_) for _ in updated_specifiers)
+    else:
+        raise UnableToResolve(
+            "Cannot resolve how to update specifier set to include latest version."
+        )
+
+    return SpecifierSet(",".join(str(_) for _ in new_specifier_set))
