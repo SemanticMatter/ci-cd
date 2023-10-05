@@ -14,7 +14,7 @@ def test_default_run(tmp_path: "Path") -> None:
 
     from invoke import MockContext
 
-    from ci_cd.tasks import create_api_reference_docs
+    from ci_cd.tasks.api_reference_docs import create_api_reference_docs
 
     package_dir = tmp_path / "ci_cd"
     shutil.copytree(
@@ -103,7 +103,7 @@ def test_nested_package(tmp_path: "Path") -> None:
 
     from invoke import MockContext
 
-    from ci_cd.tasks import create_api_reference_docs
+    from ci_cd.tasks.api_reference_docs import create_api_reference_docs
 
     package_dir = tmp_path / "src" / "ci_cd" / "ci_cd"
     shutil.copytree(
@@ -193,7 +193,7 @@ def test_special_options(tmp_path: "Path") -> None:
 
     from invoke import MockContext
 
-    from ci_cd.tasks import create_api_reference_docs
+    from ci_cd.tasks.api_reference_docs import create_api_reference_docs
 
     package_dir = tmp_path / "src" / "ci_cd"
     shutil.copytree(
@@ -318,7 +318,7 @@ def test_special_options_multiple_packages(tmp_path: "Path") -> None:
 
     from invoke import MockContext
 
-    from ci_cd.tasks import create_api_reference_docs
+    from ci_cd.tasks.api_reference_docs import create_api_reference_docs
 
     package_dirs = [
         tmp_path / "src" / "ci_cd",
@@ -485,7 +485,7 @@ def test_larger_package(tmp_path: "Path") -> None:
 
     from invoke import MockContext
 
-    from ci_cd.tasks import create_api_reference_docs
+    from ci_cd.tasks.api_reference_docs import create_api_reference_docs
 
     package_dir = tmp_path / "ci_cd"
     new_submodules = [
@@ -655,7 +655,7 @@ def test_larger_multi_packages(tmp_path: "Path") -> None:
 
     from invoke import MockContext
 
-    from ci_cd.tasks import create_api_reference_docs
+    from ci_cd.tasks.api_reference_docs import create_api_reference_docs
 
     package_dirs = [
         tmp_path / "ci_cd",

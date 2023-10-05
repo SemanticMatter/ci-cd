@@ -1,5 +1,16 @@
 """Tests for utils/versions.py"""
+# pylint: disable=too-many-lines
+from typing import TYPE_CHECKING
+
 import pytest
+
+if TYPE_CHECKING:
+    from ci_cd.utils.versions import (
+        IgnoreEntry,
+        IgnoreRules,
+        IgnoreUpdateTypes,
+        IgnoreVersions,
+    )
 
 
 def test_semanticversion() -> None:
@@ -184,3 +195,811 @@ def test_semanticversion_next_version_invalid() -> None:
     for version_part in invalid_inputs:
         with pytest.raises(ValueError, match="version_part must be one of"):
             SemanticVersion("1.0.0").next_version(version_part)
+
+
+def _parametrize_ignore_version() -> (
+    "dict[str, tuple[str, str, IgnoreVersions, IgnoreUpdateTypes, bool]]"
+):
+    """Utility function for `test_ignore_version()`.
+
+    The parametrized inputs are created in this function in order to have more
+    meaningful IDs in the runtime overview.
+    """
+    test_cases: "list[tuple[str, str, IgnoreVersions, IgnoreUpdateTypes, bool]]" = [
+        ("1.1.1", "2.2.2", [{"operator": ">", "version": "2.2.2"}], {}, False),
+        ("1.1.1", "2.2.2", [{"operator": ">", "version": "2.2"}], {}, True),
+        ("1.1.1", "2.2.2", [{"operator": ">", "version": "2"}], {}, True),
+        ("1.1.1", "2.2.2", [{"operator": ">=", "version": "2.2.2"}], {}, True),
+        ("1.1.1", "2.2.2", [{"operator": ">=", "version": "2.2"}], {}, True),
+        ("1.1.1", "2.2.2", [{"operator": ">=", "version": "2"}], {}, True),
+        ("1.1.1", "2.2.2", [{"operator": "<", "version": "2.2.2"}], {}, False),
+        ("1.1.1", "2.2.2", [{"operator": "<", "version": "2.2"}], {}, False),
+        ("1.1.1", "2.2.2", [{"operator": "<", "version": "2"}], {}, False),
+        ("1.1.1", "2.2.2", [{"operator": "<=", "version": "2.2.2"}], {}, True),
+        ("1.1.1", "2.2.2", [{"operator": "<=", "version": "2.2"}], {}, False),
+        ("1.1.1", "2.2.2", [{"operator": "<=", "version": "2"}], {}, False),
+        ("1.1.1", "2.2.2", [{"operator": "==", "version": "2.2.2"}], {}, True),
+        ("1.1.1", "2.2.2", [{"operator": "==", "version": "2.2"}], {}, False),
+        ("1.1.1", "2.2.2", [{"operator": "==", "version": "2"}], {}, False),
+        ("1.1.1", "2.2.2", [{"operator": "!=", "version": "2.2.2"}], {}, False),
+        ("1.1.1", "2.2.2", [{"operator": "!=", "version": "2.2"}], {}, True),
+        ("1.1.1", "2.2.2", [{"operator": "!=", "version": "2"}], {}, True),
+        ("1.1.1", "2.2.2", [{"operator": "~=", "version": "2.2.2"}], {}, True),
+        ("1.1.1", "2.2.2", [{"operator": "~=", "version": "2.2"}], {}, True),
+        ("1.1.1", "1.1.2", [{"operator": "~=", "version": "1.1"}], {}, True),
+        ("1.1.1", "1.1.2", [{"operator": "~=", "version": "1.0"}], {}, True),
+        ("1.1.1", "1.1.2", [{"operator": "~=", "version": "1.2"}], {}, False),
+        ("1.1.1", "2.2.2", [], {"version-update": ["major"]}, True),
+        ("1.1.1", "2.2.2", [], {"version-update": ["minor"]}, False),
+        ("1.1.1", "2.2.2", [], {"version-update": ["patch"]}, False),
+        ("1.1.1", "1.2.2", [], {"version-update": ["major"]}, False),
+        ("1.1.1", "2.1.2", [], {"version-update": ["minor"]}, False),
+        ("1.1.1", "2.2.1", [], {"version-update": ["patch"]}, False),
+        ("1.1.1", "1.2.1", [], {"version-update": ["minor"]}, True),
+        ("1.1.1", "1.1.2", [], {"version-update": ["patch"]}, True),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">", "version": "2.2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">", "version": "2.2.2"}],
+            {"version-update": ["minor"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">", "version": "2.2.2"}],
+            {"version-update": ["patch"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">", "version": "2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">", "version": "2.2"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">", "version": "2.2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">", "version": "2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">", "version": "2"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">", "version": "2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">=", "version": "2.2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">=", "version": "2.2.2"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">=", "version": "2.2.2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">=", "version": "2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">=", "version": "2.2"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">=", "version": "2.2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">=", "version": "2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">=", "version": "2"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": ">=", "version": "2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<", "version": "2.2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<", "version": "2.2.2"}],
+            {"version-update": ["minor"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<", "version": "2.2.2"}],
+            {"version-update": ["patch"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<", "version": "2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<", "version": "2.2"}],
+            {"version-update": ["minor"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<", "version": "2.2"}],
+            {"version-update": ["patch"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<", "version": "2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<", "version": "2"}],
+            {"version-update": ["minor"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<", "version": "2"}],
+            {"version-update": ["patch"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<=", "version": "2.2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<=", "version": "2.2.2"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<=", "version": "2.2.2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<=", "version": "2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<=", "version": "2.2"}],
+            {"version-update": ["minor"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<=", "version": "2.2"}],
+            {"version-update": ["patch"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<=", "version": "2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<=", "version": "2"}],
+            {"version-update": ["minor"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "<=", "version": "2"}],
+            {"version-update": ["patch"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "==", "version": "2.2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "==", "version": "2.2.2"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "==", "version": "2.2.2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "==", "version": "2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "==", "version": "2.2"}],
+            {"version-update": ["minor"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "==", "version": "2.2"}],
+            {"version-update": ["patch"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "==", "version": "2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "==", "version": "2"}],
+            {"version-update": ["minor"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "==", "version": "2"}],
+            {"version-update": ["patch"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "!=", "version": "2.2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "!=", "version": "2.2.2"}],
+            {"version-update": ["minor"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "!=", "version": "2.2.2"}],
+            {"version-update": ["patch"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "!=", "version": "2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "!=", "version": "2.2"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "!=", "version": "2.2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "!=", "version": "2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "!=", "version": "2"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "!=", "version": "2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "~=", "version": "2.2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "~=", "version": "2.2.2"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "~=", "version": "2.2.2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "~=", "version": "2.2"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "~=", "version": "2.2"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "2.2.2",
+            [{"operator": "~=", "version": "2.2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "1.1.2",
+            [{"operator": "~=", "version": "1.1"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "1.1.2",
+            [{"operator": "~=", "version": "1.1"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "1.1.2",
+            [{"operator": "~=", "version": "1.1"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "1.1.2",
+            [{"operator": "~=", "version": "1.0"}],
+            {"version-update": ["major"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "1.1.2",
+            [{"operator": "~=", "version": "1.0"}],
+            {"version-update": ["minor"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "1.1.2",
+            [{"operator": "~=", "version": "1.0"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        (
+            "1.1.1",
+            "1.1.2",
+            [{"operator": "~=", "version": "1.2"}],
+            {"version-update": ["major"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "1.1.2",
+            [{"operator": "~=", "version": "1.2"}],
+            {"version-update": ["minor"]},
+            False,
+        ),
+        (
+            "1.1.1",
+            "1.1.2",
+            [{"operator": "~=", "version": "1.2"}],
+            {"version-update": ["patch"]},
+            True,
+        ),
+        ("1.1.1", "1.1.2", [], {}, True),
+    ]
+    res: "dict[str, tuple[str, str, IgnoreVersions, IgnoreUpdateTypes, bool]]" = {}
+    for test_case in test_cases:
+        if test_case[2] and test_case[3]:
+            operator_version = ",".join(
+                f"{_['operator']}{_['version']}" for _ in test_case[2]
+            )
+            res[
+                f"{operator_version} + "
+                f"semver-{test_case[3]['version-update']}-latest={test_case[1]}"
+            ] = test_case
+        elif test_case[2]:
+            res[
+                ",".join(f"{_['operator']}{_['version']}" for _ in test_case[2])
+            ] = test_case
+        elif test_case[3]:
+            res[
+                f"semver-{test_case[3]['version-update']}-latest={test_case[1]}"
+            ] = test_case
+        else:
+            res["no rules"] = test_case
+    assert len(res) == len(test_cases)
+    return res
+
+
+@pytest.mark.parametrize(
+    argnames=("current", "latest", "version_rules", "semver_rules", "expected_outcome"),
+    argvalues=list(_parametrize_ignore_version().values()),
+    ids=list(_parametrize_ignore_version()),
+)
+def test_ignore_version(
+    current: str,
+    latest: str,
+    version_rules: "IgnoreVersions",
+    semver_rules: "IgnoreUpdateTypes",
+    expected_outcome: bool,
+) -> None:
+    """Check the expected ignore rules are resolved correctly."""
+    from ci_cd.utils.versions import ignore_version
+
+    assert (
+        ignore_version(
+            current=current.split("."),
+            latest=latest.split("."),
+            version_rules=version_rules,
+            semver_rules=semver_rules,
+        )
+        == expected_outcome
+    ), f"""Failed for:
+  current={current.split(".")}
+  latest={latest.split(".")}
+  version_rules={version_rules}
+  semver_rules={semver_rules}
+
+Expected outcome: {expected_outcome}
+Instead, ignore_version() is {not expected_outcome}
+"""
+
+
+@pytest.mark.parametrize(
+    argnames=("entries", "separator", "expected_outcome"),
+    argvalues=[
+        (
+            ["dependency-name=test...versions=>2.2.2"],
+            "...",
+            {"test": {"versions": [">2.2.2"]}},
+        ),
+        (
+            [
+                "dependency-name=test...versions=>2.2.2..."
+                "update-types=version-update:semver-patch"
+            ],
+            "...",
+            {
+                "test": {
+                    "versions": [">2.2.2"],
+                    "update-types": ["version-update:semver-patch"],
+                }
+            },
+        ),
+        (
+            [
+                "dependency-name=test;versions=>2.2.2;"
+                "update-types=version-update:semver-patch"
+            ],
+            ";",
+            {
+                "test": {
+                    "versions": [">2.2.2"],
+                    "update-types": ["version-update:semver-patch"],
+                }
+            },
+        ),
+        (
+            [
+                "dependency-name=test...versions=>2.2.2..."
+                "update-types=version-update:semver-patch",
+                "dependency-name=test...versions=<3",
+            ],
+            "...",
+            {
+                "test": {
+                    "versions": [">2.2.2", "<3"],
+                    "update-types": ["version-update:semver-patch"],
+                }
+            },
+        ),
+        (
+            [
+                "dependency-name=test;versions=>2.2.2;"
+                "update-types=version-update:semver-patch",
+                "dependency-name=test;versions=<3",
+            ],
+            ";",
+            {
+                "test": {
+                    "versions": [">2.2.2", "<3"],
+                    "update-types": ["version-update:semver-patch"],
+                }
+            },
+        ),
+        (
+            [
+                "dependency-name=test...versions=>2.2.2..."
+                "update-types=version-update:semver-patch",
+                "dependency-name=test...versions=<3..."
+                "update-types=version-update:semver-major",
+            ],
+            "...",
+            {
+                "test": {
+                    "versions": [">2.2.2", "<3"],
+                    "update-types": [
+                        "version-update:semver-patch",
+                        "version-update:semver-major",
+                    ],
+                }
+            },
+        ),
+        (
+            [
+                "dependency-name=test;versions=>2.2.2;"
+                "update-types=version-update:semver-patch",
+                "dependency-name=test;versions=<3;"
+                "update-types=version-update:semver-major",
+            ],
+            ";",
+            {
+                "test": {
+                    "versions": [">2.2.2", "<3"],
+                    "update-types": [
+                        "version-update:semver-patch",
+                        "version-update:semver-major",
+                    ],
+                }
+            },
+        ),
+        (["dependency-name=test"], "...", {"test": {}}),
+    ],
+)
+def test_parse_ignore_entries(
+    entries: list[str],
+    separator: str,
+    expected_outcome: "dict[str, IgnoreEntry]",
+) -> None:
+    """Check the `--ignore` option values are parsed as expected."""
+    from ci_cd.utils.versions import parse_ignore_entries
+
+    parsed_entries = parse_ignore_entries(
+        entries=entries,
+        separator=separator,
+    )
+    assert (
+        parsed_entries == expected_outcome
+    ), f"""Failed for:
+  entries={entries}
+  separator={separator}
+
+Expected outcome:
+{expected_outcome}
+
+Instead, parse_ignore_entries() returned:
+{parsed_entries}
+"""
+
+
+@pytest.mark.parametrize(
+    argnames=("rules", "expected_outcome"),
+    argvalues=[
+        ({"versions": [">2.2.2"]}, ([{"operator": ">", "version": "2.2.2"}], {})),
+        (
+            {"versions": [">2.2.2"], "update-types": ["version-update:semver-patch"]},
+            ([{"operator": ">", "version": "2.2.2"}], {"version-update": ["patch"]}),
+        ),
+        (
+            {
+                "versions": [">2.2.2", "<3"],
+                "update-types": ["version-update:semver-patch"],
+            },
+            (
+                [
+                    {"operator": ">", "version": "2.2.2"},
+                    {"operator": "<", "version": "3"},
+                ],
+                {"version-update": ["patch"]},
+            ),
+        ),
+        (
+            {
+                "versions": [">2.2.2", "<3"],
+                "update-types": [
+                    "version-update:semver-patch",
+                    "version-update:semver-major",
+                ],
+            },
+            (
+                [
+                    {"operator": ">", "version": "2.2.2"},
+                    {"operator": "<", "version": "3"},
+                ],
+                {"version-update": ["patch", "major"]},
+            ),
+        ),
+        ({}, ([{"operator": ">=", "version": "0"}], {})),
+    ],
+)
+def test_parse_ignore_rules(
+    rules: "IgnoreRules",
+    expected_outcome: "tuple[IgnoreVersions, IgnoreUpdateTypes]",
+) -> None:
+    """Check a specific set of ignore rules is parsed as expected."""
+    from ci_cd.utils.versions import parse_ignore_rules
+
+    parsed_rules = parse_ignore_rules(rules=rules)
+    assert (
+        parsed_rules == expected_outcome
+    ), f"""Failed for:
+  rules={rules}
+
+Expected outcome:
+{expected_outcome}
+
+Instead, parse_ignore_rules() returned:
+{parsed_rules}
+"""
+
+
+def test_ignore_version_fails() -> None:
+    """Ensure `InputParserError` is raised for unknown ignore options."""
+    from ci_cd.exceptions import InputError, InputParserError
+    from ci_cd.utils.versions import ignore_version
+
+    with pytest.raises(
+        InputParserError, match="only supports the following operators:"
+    ):
+        ignore_version(
+            current="1.1.1".split("."),
+            latest="2.2.2".split("."),
+            version_rules=[{"operator": "===", "version": "2.2.2"}],
+            semver_rules={},
+        )
+
+    with pytest.raises(
+        InputParserError, match=r"^Only valid values for 'version-update' are.*"
+    ):
+        ignore_version(
+            current="1.1.1".split("."),
+            latest="2.2.2".split("."),
+            version_rules=[],
+            semver_rules={"version-update": ["build"]},  # type: ignore[list-item]
+        )
+
+    with pytest.raises(
+        InputError,
+        match="when using the '~=' operator more than a single version part",
+    ):
+        ignore_version(
+            current="1.1.1".split("."),
+            latest="2.2.2".split("."),
+            version_rules=[{"operator": "~=", "version": "2"}],
+            semver_rules={},
+        )

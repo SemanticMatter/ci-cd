@@ -1,5 +1,4 @@
 """Test `ci_cd.tasks.update_deps()`."""
-# pylint: disable=line-too-long,too-many-lines,too-many-locals
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -8,7 +7,6 @@ import pytest
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Literal
 
 
 def test_update_deps(tmp_path: "Path", caplog: pytest.LogCaptureFixture) -> None:
@@ -17,7 +15,7 @@ def test_update_deps(tmp_path: "Path", caplog: pytest.LogCaptureFixture) -> None
 
     from invoke import MockContext
 
-    from ci_cd.tasks import update_deps
+    from ci_cd.tasks.update_deps import update_deps
 
     original_dependencies = {
         "invoke": "1.7",
@@ -46,13 +44,13 @@ docs = [
 ]
 testing = [
     "pytest ~={original_dependencies['pytest']}",
-    "pytest-cov ~={original_dependencies['pytest-cov']}",
+    "pytest-cov ~={original_dependencies['pytest-cov']},!=3.1",
 ]
 dev = [
     "mike >={original_dependencies['mike']},<3",
     "pytest ~={original_dependencies['pytest']}",
-    "pytest-cov ~={original_dependencies['pytest-cov']}",
-    "pre-commit ~={original_dependencies['pre-commit']}",
+    "pytest-cov ~={original_dependencies['pytest-cov']},!=3.1",
+    # "pre-commit ~={original_dependencies['pre-commit']},!=2.21.*",
     "pylint ~={original_dependencies['pylint']}",
 ]
 
@@ -89,21 +87,30 @@ pep_508 = [
                 re.compile(r".*tomlkit$"): "tomlkit (1.0.0)",
                 re.compile(r".*mike$"): "mike (1.1.1)",
                 re.compile(r".*pytest$"): "pytest (7.1.0)",
-                re.compile(r".*pytest-cov$"): "pytest-cov (3.1.0)",
-                re.compile(r".*pre-commit$"): "pre-commit (2.20.0)",
+                re.compile(r".*pytest-cov$"): "pytest-cov (3.1.5)",
+                re.compile(r".*pre-commit$"): "pre-commit (2.21.5)",
                 re.compile(r".*pylint$"): "pylint (2.14.0)",
                 re.compile(r".* A$"): "A (1.2.3)",
                 re.compile(r".*A.B-C_D$"): "A.B-C_D (1.2.3)",
                 re.compile(r".*aa$"): "aa (1.2.3)",
                 re.compile(r".*name$"): "name (1.2.3)",
             },
-            **{re.compile(rf".*name{i}$"): f"name{i} (1.2.3)" for i in range(1, 12)},
+            **{re.compile(rf".*name{i}$"): f"name{i} (3.2.1)" for i in range(1, 12)},
         }
     )
 
-    # Other than the versions, other artifacts are expected to have changed/be respected:
+    # Expected changes:
     # - Extras should be sorted alphabetically (tomlkit).
-    # - Original white space between name and specifiers should be respected (pep_508 vs. the rest)
+    # - Original white space between name and specifiers should be respected
+    #   (pep_508 vs. the rest)
+    # - All name# with a version specifier should be updated to include the latest
+    #   version (explicit change in name1)
+    # - Similar formatting, even if the dependency is otherwise skipped
+    #   (name4 to name11)
+    # - Acknowledge that !=3.1 expands to !=3.1.0, so 3.1.5 is allowed (pytest-cov)
+    # - TODO: Acknowledge that !=2.21.* includes not wanting *all* sub-versions of 2.21,
+    #   so 2.21.5 is excluded and should not be part of the updated specifier set
+    #   (pre-commit)
     expected_updated_pyproject_file = f"""
 [project]
 requires-python = "~=3.7"
@@ -119,13 +126,13 @@ docs = [
 ]
 testing = [
     "pytest ~={original_dependencies['pytest']}",
-    "pytest-cov ~=3.1",
+    "pytest-cov ~=3.1,!=3.1",
 ]
 dev = [
     "mike >={original_dependencies['mike']},<3",
     "pytest ~={original_dependencies['pytest']}",
-    "pytest-cov ~=3.1",
-    "pre-commit ~={original_dependencies['pre-commit']}",
+    "pytest-cov ~=3.1,!=3.1",
+    # "pre-commit ~={original_dependencies['pre-commit']},!=2.21.*",
     "pylint ~=2.14",
 ]
 
@@ -135,7 +142,7 @@ pep_508 = [
     "A.B-C_D",
     "aa",
     "name",
-    "name1<=1",
+    "name1<=3",
     "name2>=3",
     "name3>=3,<2",
     "name4@ http://foo.com",
@@ -175,809 +182,8 @@ pep_508 = [
     for package_name in ["name4", "name5"]:
         assert f"{package_name!r} is pinned to a URL and will be skipped" in caplog.text
 
-    for package_name in ["invoke", "mike", "pytest", "pre-commit"]:
+    for package_name in ["invoke", "mike", "pytest"]:
         assert f"Package {package_name!r} is already up-to-date" in caplog.text
-
-
-@pytest.mark.parametrize(
-    argnames=("entries", "separator", "expected_outcome"),
-    argvalues=[
-        (
-            ["dependency-name=test...versions=>2.2.2"],
-            "...",
-            {"test": {"versions": [">2.2.2"]}},
-        ),
-        (
-            [
-                "dependency-name=test...versions=>2.2.2...update-types=version-update:semver-patch"
-            ],
-            "...",
-            {
-                "test": {
-                    "versions": [">2.2.2"],
-                    "update-types": ["version-update:semver-patch"],
-                }
-            },
-        ),
-        (
-            [
-                "dependency-name=test;versions=>2.2.2;update-types=version-update:semver-patch"
-            ],
-            ";",
-            {
-                "test": {
-                    "versions": [">2.2.2"],
-                    "update-types": ["version-update:semver-patch"],
-                }
-            },
-        ),
-        (
-            [
-                "dependency-name=test...versions=>2.2.2...update-types=version-update:semver-patch",
-                "dependency-name=test...versions=<3",
-            ],
-            "...",
-            {
-                "test": {
-                    "versions": [">2.2.2", "<3"],
-                    "update-types": ["version-update:semver-patch"],
-                }
-            },
-        ),
-        (
-            [
-                "dependency-name=test;versions=>2.2.2;update-types=version-update:semver-patch",
-                "dependency-name=test;versions=<3",
-            ],
-            ";",
-            {
-                "test": {
-                    "versions": [">2.2.2", "<3"],
-                    "update-types": ["version-update:semver-patch"],
-                }
-            },
-        ),
-        (
-            [
-                "dependency-name=test...versions=>2.2.2...update-types=version-update:semver-patch",
-                "dependency-name=test...versions=<3...update-types=version-update:semver-major",
-            ],
-            "...",
-            {
-                "test": {
-                    "versions": [">2.2.2", "<3"],
-                    "update-types": [
-                        "version-update:semver-patch",
-                        "version-update:semver-major",
-                    ],
-                }
-            },
-        ),
-        (
-            [
-                "dependency-name=test;versions=>2.2.2;update-types=version-update:semver-patch",
-                "dependency-name=test;versions=<3;update-types=version-update:semver-major",
-            ],
-            ";",
-            {
-                "test": {
-                    "versions": [">2.2.2", "<3"],
-                    "update-types": [
-                        "version-update:semver-patch",
-                        "version-update:semver-major",
-                    ],
-                }
-            },
-        ),
-        (["dependency-name=test"], "...", {"test": {}}),
-    ],
-)
-def test_parse_ignore_entries(
-    entries: list[str],
-    separator: str,
-    expected_outcome: 'dict[str, dict[Literal["dependency-name", "versions", "update-types"], str]]',
-) -> None:
-    """Check the `--ignore` option values are parsed as expected."""
-    from ci_cd.tasks.update_deps import parse_ignore_entries
-
-    parsed_entries = parse_ignore_entries(
-        entries=entries,
-        separator=separator,
-    )
-    assert (
-        parsed_entries == expected_outcome
-    ), f"""Failed for:
-  entries={entries}
-  separator={separator}
-
-Expected outcome:
-{expected_outcome}
-
-Instead, parse_ignore_entries() returned:
-{parsed_entries}
-"""
-
-
-@pytest.mark.parametrize(
-    argnames=("rules", "expected_outcome"),
-    argvalues=[
-        ({"versions": [">2.2.2"]}, ([{"operator": ">", "version": "2.2.2"}], {})),
-        (
-            {"versions": [">2.2.2"], "update-types": ["version-update:semver-patch"]},
-            ([{"operator": ">", "version": "2.2.2"}], {"version-update": ["patch"]}),
-        ),
-        (
-            {
-                "versions": [">2.2.2", "<3"],
-                "update-types": ["version-update:semver-patch"],
-            },
-            (
-                [
-                    {"operator": ">", "version": "2.2.2"},
-                    {"operator": "<", "version": "3"},
-                ],
-                {"version-update": ["patch"]},
-            ),
-        ),
-        (
-            {
-                "versions": [">2.2.2", "<3"],
-                "update-types": [
-                    "version-update:semver-patch",
-                    "version-update:semver-major",
-                ],
-            },
-            (
-                [
-                    {"operator": ">", "version": "2.2.2"},
-                    {"operator": "<", "version": "3"},
-                ],
-                {"version-update": ["patch", "major"]},
-            ),
-        ),
-        ({}, ([{"operator": ">=", "version": "0"}], {})),
-    ],
-)
-def test_parse_ignore_rules(
-    rules: 'dict[Literal["versions", "update-types"], list[str]]',
-    expected_outcome: "tuple[list[dict[Literal['operator', 'version'], str]], dict[Literal['version-update'], list[Literal['major', 'minor', 'patch']]]]",
-) -> None:
-    """Check a specific set of ignore rules is parsed as expected."""
-    from ci_cd.tasks.update_deps import parse_ignore_rules
-
-    parsed_rules = parse_ignore_rules(rules=rules)
-    assert (
-        parsed_rules == expected_outcome
-    ), f"""Failed for:
-  rules={rules}
-
-Expected outcome:
-{expected_outcome}
-
-Instead, parse_ignore_rules() returned:
-{parsed_rules}
-"""
-
-
-def _parametrize_ignore_version() -> (
-    "dict[str, tuple[str, str, list[dict[Literal['operator', 'version'], str]], dict[Literal['version-update'], list[Literal['major', 'minor', 'patch']]], bool]]"
-):
-    """Utility function for `test_ignore_version()`.
-
-    The parametrized inputs are created in this function in order to have more
-    meaningful IDs in the runtime overview.
-    """
-    test_cases: "list[tuple[str, str, list[dict[Literal['operator', 'version'], str]], dict[Literal['version-update'], list[Literal['major', 'minor', 'patch']]], bool]]" = [
-        ("1.1.1", "2.2.2", [{"operator": ">", "version": "2.2.2"}], {}, False),
-        ("1.1.1", "2.2.2", [{"operator": ">", "version": "2.2"}], {}, True),
-        ("1.1.1", "2.2.2", [{"operator": ">", "version": "2"}], {}, True),
-        ("1.1.1", "2.2.2", [{"operator": ">=", "version": "2.2.2"}], {}, True),
-        ("1.1.1", "2.2.2", [{"operator": ">=", "version": "2.2"}], {}, True),
-        ("1.1.1", "2.2.2", [{"operator": ">=", "version": "2"}], {}, True),
-        ("1.1.1", "2.2.2", [{"operator": "<", "version": "2.2.2"}], {}, False),
-        ("1.1.1", "2.2.2", [{"operator": "<", "version": "2.2"}], {}, False),
-        ("1.1.1", "2.2.2", [{"operator": "<", "version": "2"}], {}, False),
-        ("1.1.1", "2.2.2", [{"operator": "<=", "version": "2.2.2"}], {}, True),
-        ("1.1.1", "2.2.2", [{"operator": "<=", "version": "2.2"}], {}, False),
-        ("1.1.1", "2.2.2", [{"operator": "<=", "version": "2"}], {}, False),
-        ("1.1.1", "2.2.2", [{"operator": "==", "version": "2.2.2"}], {}, True),
-        ("1.1.1", "2.2.2", [{"operator": "==", "version": "2.2"}], {}, False),
-        ("1.1.1", "2.2.2", [{"operator": "==", "version": "2"}], {}, False),
-        ("1.1.1", "2.2.2", [{"operator": "!=", "version": "2.2.2"}], {}, False),
-        ("1.1.1", "2.2.2", [{"operator": "!=", "version": "2.2"}], {}, True),
-        ("1.1.1", "2.2.2", [{"operator": "!=", "version": "2"}], {}, True),
-        ("1.1.1", "2.2.2", [{"operator": "~=", "version": "2.2.2"}], {}, True),
-        ("1.1.1", "2.2.2", [{"operator": "~=", "version": "2.2"}], {}, True),
-        ("1.1.1", "1.1.2", [{"operator": "~=", "version": "1.1"}], {}, True),
-        ("1.1.1", "1.1.2", [{"operator": "~=", "version": "1.0"}], {}, True),
-        ("1.1.1", "1.1.2", [{"operator": "~=", "version": "1.2"}], {}, False),
-        ("1.1.1", "2.2.2", [], {"version-update": ["major"]}, True),
-        ("1.1.1", "2.2.2", [], {"version-update": ["minor"]}, False),
-        ("1.1.1", "2.2.2", [], {"version-update": ["patch"]}, False),
-        ("1.1.1", "1.2.2", [], {"version-update": ["major"]}, False),
-        ("1.1.1", "2.1.2", [], {"version-update": ["minor"]}, False),
-        ("1.1.1", "2.2.1", [], {"version-update": ["patch"]}, False),
-        ("1.1.1", "1.2.1", [], {"version-update": ["minor"]}, True),
-        ("1.1.1", "1.1.2", [], {"version-update": ["patch"]}, True),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">", "version": "2.2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">", "version": "2.2.2"}],
-            {"version-update": ["minor"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">", "version": "2.2.2"}],
-            {"version-update": ["patch"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">", "version": "2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">", "version": "2.2"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">", "version": "2.2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">", "version": "2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">", "version": "2"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">", "version": "2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">=", "version": "2.2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">=", "version": "2.2.2"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">=", "version": "2.2.2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">=", "version": "2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">=", "version": "2.2"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">=", "version": "2.2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">=", "version": "2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">=", "version": "2"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": ">=", "version": "2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<", "version": "2.2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<", "version": "2.2.2"}],
-            {"version-update": ["minor"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<", "version": "2.2.2"}],
-            {"version-update": ["patch"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<", "version": "2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<", "version": "2.2"}],
-            {"version-update": ["minor"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<", "version": "2.2"}],
-            {"version-update": ["patch"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<", "version": "2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<", "version": "2"}],
-            {"version-update": ["minor"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<", "version": "2"}],
-            {"version-update": ["patch"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<=", "version": "2.2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<=", "version": "2.2.2"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<=", "version": "2.2.2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<=", "version": "2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<=", "version": "2.2"}],
-            {"version-update": ["minor"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<=", "version": "2.2"}],
-            {"version-update": ["patch"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<=", "version": "2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<=", "version": "2"}],
-            {"version-update": ["minor"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "<=", "version": "2"}],
-            {"version-update": ["patch"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "==", "version": "2.2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "==", "version": "2.2.2"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "==", "version": "2.2.2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "==", "version": "2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "==", "version": "2.2"}],
-            {"version-update": ["minor"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "==", "version": "2.2"}],
-            {"version-update": ["patch"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "==", "version": "2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "==", "version": "2"}],
-            {"version-update": ["minor"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "==", "version": "2"}],
-            {"version-update": ["patch"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "!=", "version": "2.2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "!=", "version": "2.2.2"}],
-            {"version-update": ["minor"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "!=", "version": "2.2.2"}],
-            {"version-update": ["patch"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "!=", "version": "2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "!=", "version": "2.2"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "!=", "version": "2.2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "!=", "version": "2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "!=", "version": "2"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "!=", "version": "2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "~=", "version": "2.2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "~=", "version": "2.2.2"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "~=", "version": "2.2.2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "~=", "version": "2.2"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "~=", "version": "2.2"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "2.2.2",
-            [{"operator": "~=", "version": "2.2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "1.1.2",
-            [{"operator": "~=", "version": "1.1"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "1.1.2",
-            [{"operator": "~=", "version": "1.1"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "1.1.2",
-            [{"operator": "~=", "version": "1.1"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "1.1.2",
-            [{"operator": "~=", "version": "1.0"}],
-            {"version-update": ["major"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "1.1.2",
-            [{"operator": "~=", "version": "1.0"}],
-            {"version-update": ["minor"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "1.1.2",
-            [{"operator": "~=", "version": "1.0"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        (
-            "1.1.1",
-            "1.1.2",
-            [{"operator": "~=", "version": "1.2"}],
-            {"version-update": ["major"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "1.1.2",
-            [{"operator": "~=", "version": "1.2"}],
-            {"version-update": ["minor"]},
-            False,
-        ),
-        (
-            "1.1.1",
-            "1.1.2",
-            [{"operator": "~=", "version": "1.2"}],
-            {"version-update": ["patch"]},
-            True,
-        ),
-        ("1.1.1", "1.1.2", [], {}, True),
-    ]
-    res: "dict[str, tuple[str, str, list[dict[Literal['operator', 'version'], str]], dict[Literal['version-update'], list[Literal['major', 'minor', 'patch']]], bool]]" = (
-        {}
-    )
-    for test_case in test_cases:
-        if test_case[2] and test_case[3]:
-            operator_version = ",".join(
-                f"{_['operator']}{_['version']}" for _ in test_case[2]
-            )
-            res[
-                f"{operator_version} + "
-                f"semver-{test_case[3]['version-update']}-latest={test_case[1]}"
-            ] = test_case
-        elif test_case[2]:
-            res[
-                ",".join(f"{_['operator']}{_['version']}" for _ in test_case[2])
-            ] = test_case
-        elif test_case[3]:
-            res[
-                f"semver-{test_case[3]['version-update']}-latest={test_case[1]}"
-            ] = test_case
-        else:
-            res["no rules"] = test_case
-    assert len(res) == len(test_cases)
-    return res
-
-
-@pytest.mark.parametrize(
-    argnames=("current", "latest", "version_rules", "semver_rules", "expected_outcome"),
-    argvalues=list(_parametrize_ignore_version().values()),
-    ids=list(_parametrize_ignore_version()),
-)
-def test_ignore_version(
-    current: str,
-    latest: str,
-    version_rules: "list[dict[Literal['operator', 'version'], str]]",
-    semver_rules: "dict[Literal['version-update'], list[Literal['major', 'minor', 'patch']]]",
-    expected_outcome: bool,
-) -> None:
-    """Check the expected ignore rules are resolved correctly."""
-    from ci_cd.tasks.update_deps import ignore_version
-
-    assert (
-        ignore_version(
-            current=current.split("."),
-            latest=latest.split("."),
-            version_rules=version_rules,
-            semver_rules=semver_rules,
-        )
-        == expected_outcome
-    ), f"""Failed for:
-  current={current.split(".")}
-  latest={latest.split(".")}
-  version_rules={version_rules}
-  semver_rules={semver_rules}
-
-Expected outcome: {expected_outcome}
-Instead, ignore_version() is {not expected_outcome}
-"""
-
-
-def test_ignore_version_fails() -> None:
-    """Ensure `InputParserError` is raised for unknown ignore options."""
-    from ci_cd.exceptions import InputError, InputParserError
-    from ci_cd.tasks.update_deps import ignore_version
-
-    with pytest.raises(
-        InputParserError, match="only supports the following operators:"
-    ):
-        ignore_version(
-            current="1.1.1".split("."),
-            latest="2.2.2".split("."),
-            version_rules=[{"operator": "===", "version": "2.2.2"}],
-            semver_rules={},
-        )
-
-    with pytest.raises(
-        InputParserError, match=r"^Only valid values for 'version-update' are.*"
-    ):
-        ignore_version(
-            current="1.1.1".split("."),
-            latest="2.2.2".split("."),
-            version_rules=[],
-            semver_rules={"version-update": ["build"]},  # type: ignore[list-item]
-        )
-
-    with pytest.raises(
-        InputError, match="when using the '~=' operator more than a single version part"
-    ):
-        ignore_version(
-            current="1.1.1".split("."),
-            latest="2.2.2".split("."),
-            version_rules=[{"operator": "~=", "version": "2"}],
-            semver_rules={},
-        )
 
 
 @pytest.mark.parametrize(
@@ -1097,46 +303,35 @@ def test_ignore_rules_logic(
     import tomlkit
     from invoke import MockContext
 
-    from ci_cd.tasks import update_deps
-
-    original_dependencies = {
-        "invoke": "1.7",
-        "tomlkit": "0.11.4",
-        "mike": "1.1",
-        "pytest": "7.1",
-        "pytest-cov": "3.0",
-        "pre-commit": "2.20",
-        "pylint": "2.13",
-        "Sphinx": "4.5.0",
-    }
+    from ci_cd.tasks.update_deps import update_deps
 
     pyproject_file = tmp_path / "pyproject.toml"
     pyproject_file.write_text(
-        data=f"""
+        data="""
 [project]
 requires-python = "~=3.7"
 
 dependencies = [
-    "invoke ~={original_dependencies['invoke']}",
-    "tomlkit[test,docs] ~={original_dependencies['tomlkit']}",
+    "invoke ~=1.7",
+    "tomlkit[test,docs] ~=0.11.4",
 ]
 
 [project.optional-dependencies]
 docs = [
-    "mike >={original_dependencies['mike']},<3",
-    "Sphinx >={original_dependencies['Sphinx']},<6",
+    "mike >=1.1,<3",
+    "Sphinx >=4.5.0,<6",
 ]
 testing = [
-    "pytest ~={original_dependencies['pytest']}",
-    "pytest-cov ~={original_dependencies['pytest-cov']}",
+    "pytest ~=7.1",
+    "pytest-cov ~=3.0",
 ]
 dev = [
-    "mike >={original_dependencies['mike']},<3",
-    "pytest ~={original_dependencies['pytest']}",
-    "pytest-cov ~={original_dependencies['pytest-cov']}",
-    "pre-commit ~={original_dependencies['pre-commit']}",
-    "pylint ~={original_dependencies['pylint']}",
-    "Sphinx >={original_dependencies['Sphinx']},<6",
+    "mike >=1.1,<3",
+    "pytest ~=7.1",
+    "pytest-cov ~=3.0",
+    "pre-commit ~=2.20",
+    "pylint ~=2.13",
+    "Sphinx >=4.5.0,<6",
 ]
 """,
         encoding="utf8",

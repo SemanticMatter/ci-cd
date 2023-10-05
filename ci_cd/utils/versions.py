@@ -405,37 +405,19 @@ def parse_ignore_rules(
 
 
 def create_ignore_rules(specifier_set: SpecifierSet) -> "IgnoreRules":
-    """Create ignore rules based on version specifier set."""
-    ignore_rules: list[str] = []
-    for specifier in specifier_set:
-        if specifier.operator == "!=":
-            ignore_rules.append(f"=={specifier.version}")
-        elif specifier.operator == "<=":
-            ignore_rules.append(f">{specifier.version}")
-        elif specifier.operator == "<":
-            ignore_rules.append(f">={specifier.version}")
-        elif specifier.operator == ">=":
-            ignore_rules.append(f"<{specifier.version}")
-        elif specifier.operator == ">":
-            ignore_rules.append(f"<={specifier.version}")
-        elif specifier.operator == "~=":
-            # The '~=' operator is a special case, as it's not a direct comparison
-            # operator, but rather a range operator. The '~=' operator is used to
-            # specify a minimum version, but with some flexibility in the last part.
-            # E.g., '~=2.0' is equivalent to '>=2.0.0, <2.1.0' or '>=2.0, <2.1' or
-            # '>=2.0, ==2.*'.
+    """Create ignore rules based on version specifier set.
 
-            ignore_rules.append(f"<{specifier.version}")
-
-            # We do not ignore the intended upper limit of the range, as this would be
-            # counter-productive.
-        else:
-            raise NotImplementedError(
-                "Unknown or unsupported version specifier operator: "
-                f"{specifier.operator!r}"
-            )
-
-    return {"versions": ignore_rules}
+    The only ignore rules needed are related to versions that should be explicitly
+    avoided, i.e., the `!=` operator. All other specifiers should require an explicit
+    ignore rule by the user, if no update should be suggested.
+    """
+    return {
+        "versions": [
+            f"=={specifier.version}"
+            for specifier in specifier_set
+            if specifier.operator == "!="
+        ]
+    }
 
 
 def _ignore_version_rules(latest: list[str], version_rules: "IgnoreVersions") -> bool:

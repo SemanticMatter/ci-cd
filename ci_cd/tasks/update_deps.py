@@ -294,6 +294,10 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                     )
             else:
                 ignore_rules[parsed_requirement.name] = requirement_ignore_rules
+            LOGGER.debug(
+                "Created ignore rules (from specifier set): %s",
+                requirement_ignore_rules,
+            )
 
         # Apply ignore rules
         if parsed_requirement.name in ignore_rules or "*" in ignore_rules:
