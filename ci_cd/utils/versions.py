@@ -616,7 +616,16 @@ def regenerate_requirement(
         updated_dependency += " "
 
     if specifier or requirement.specifier:
-        updated_dependency += str(specifier or requirement.specifier)
+        if specifier and not isinstance(specifier, SpecifierSet):
+            specifier = SpecifierSet(specifier)
+        updated_dependency += ",".join(
+            str(_)
+            for _ in sorted(
+                specifier or requirement.specifier,
+                key=lambda spec: spec.operator,  # type: ignore[attr-defined]
+                reverse=True,
+            )
+        )
 
     if url or requirement.url:
         updated_dependency += f"@ {url or requirement.url}"
@@ -651,6 +660,11 @@ def update_specifier_set(
                 updated_specifiers.append(f"{specifier.operator}{updated_version}")
                 new_specifier_set.remove(specifier)
                 break
+        else:
+            # The latest version is already included in the specifier set, and the set
+            # does not need updating. To communicate this, make updated_specifiers
+            # non-empty, but include only an empty string.
+            updated_specifiers.append("")
     else:
         # The latest version is *not* included in the specifier set.
         # Expect the latest version to be greater than the current version range.
@@ -721,7 +735,11 @@ def update_specifier_set(
 
     # Finally, add updated specifier(s) to new specifier set or raise.
     if updated_specifiers:
-        new_specifier_set |= set(Specifier(_) for _ in updated_specifiers)
+        # If updated_specifiers includes only an empty string, it means that the
+        # current specifier set is valid as is and already includes the latest version
+        if updated_specifiers != [""]:
+            # Otherwise, add updated specifier(s) to new specifier set
+            new_specifier_set |= set(Specifier(_) for _ in updated_specifiers)
     else:
         raise UnableToResolve(
             "Cannot resolve how to update specifier set to include latest version."

@@ -15,7 +15,6 @@ def test_update_deps(tmp_path: "Path", caplog: pytest.LogCaptureFixture) -> None
     """Check update_deps runs with defaults."""
     import re
 
-    import tomlkit
     from invoke import MockContext
 
     from ci_cd.tasks import update_deps
@@ -88,7 +87,7 @@ pep_508 = [
             **{
                 re.compile(r".*invoke$"): "invoke (1.7.1)\n",
                 re.compile(r".*tomlkit$"): "tomlkit (1.0.0)",
-                re.compile(r".*mike$"): "mike (1.0.1)",
+                re.compile(r".*mike$"): "mike (1.1.1)",
                 re.compile(r".*pytest$"): "pytest (7.1.0)",
                 re.compile(r".*pytest-cov$"): "pytest-cov (3.1.0)",
                 re.compile(r".*pre-commit$"): "pre-commit (2.20.0)",
@@ -102,67 +101,82 @@ pep_508 = [
         }
     )
 
+    # Other than the versions, other artifacts are expected to have changed/be respected:
+    # - Extras should be sorted alphabetically (tomlkit).
+    # - Original white space between name and specifiers should be respected (pep_508 vs. the rest)
+    expected_updated_pyproject_file = f"""
+[project]
+requires-python = "~=3.7"
+
+dependencies = [
+    "invoke ~={original_dependencies['invoke']}",
+    "tomlkit[docs,test] >={original_dependencies['tomlkit']},<2",
+]
+
+[project.optional-dependencies]
+docs = [
+    "mike >={original_dependencies['mike']},<3",
+]
+testing = [
+    "pytest ~={original_dependencies['pytest']}",
+    "pytest-cov ~=3.1",
+]
+dev = [
+    "mike >={original_dependencies['mike']},<3",
+    "pytest ~={original_dependencies['pytest']}",
+    "pytest-cov ~=3.1",
+    "pre-commit ~={original_dependencies['pre-commit']}",
+    "pylint ~=2.14",
+]
+
+# List from https://peps.python.org/pep-0508/#complete-grammar
+pep_508 = [
+    "A",
+    "A.B-C_D",
+    "aa",
+    "name",
+    "name1<=1",
+    "name2>=3",
+    "name3>=3,<2",
+    "name4@ http://foo.com",
+    "name5[bar,fred] @ http://foo.com ; python_version == '2.7'",
+    "name6[quux,strange]; python_version < '2.7' and platform_version == '2'",
+    "name7; os_name == 'a' or os_name == 'b'",
+    # Should parse as (a and b) or c
+    "name8; os_name == 'a' and os_name == 'b' or os_name == 'c'",
+    # Overriding precedence -> a and (b or c)
+    "name9; os_name == 'a' and (os_name == 'b' or os_name == 'c')",
+    # should parse as a or (b and c)
+    "name10; os_name == 'a' or os_name == 'b' and os_name == 'c'",
+    # Overriding precedence -> (a or b) and c
+    "name11; (os_name == 'a' or os_name == 'b') and os_name == 'c'",
+]
+"""
+
     update_deps(
         context,
         root_repo_path=str(tmp_path),
     )
 
-    pyproject = tomlkit.loads(pyproject_file.read_bytes())
+    updated_pyproject_file = pyproject_file.read_text(encoding="utf8")
 
-    dependencies: list[str] = pyproject.get("project", {}).get("dependencies", [])
-    for optional_deps in (
-        pyproject.get("project", {}).get("optional-dependencies", {}).values()
-    ):
-        dependencies.extend(optional_deps)
+    assert updated_pyproject_file == expected_updated_pyproject_file
 
-    for line in dependencies:
-        if any(
-            line.startswith(package_name)
-            for package_name in ["invoke ", "pytest ", "pre-commit "]
-        ):
-            package_name = line.split(maxsplit=1)[0]
-            assert line == f"{package_name} ~={original_dependencies[package_name]}"
-        elif "tomlkit" in line:
-            # Should be three version digits, since the original dependency had three.
-            assert line == "tomlkit[test,docs] ~=1.0.0"
-        elif "mike" in line:
-            assert line == "mike >=1.0,<3"
-        elif "pytest-cov" in line:
-            assert line == "pytest-cov ~=3.1"
-        elif "pylint" in line:
-            assert line == "pylint ~=2.14"
-        elif any(
-            package_name == line for package_name in ["A", "A.B-C_D", "aa", "name"]
-        ) or any(
-            line.startswith(package_name)
-            for package_name in [f"name{i}" for i in range(6, 12)]
-        ):
-            package_name = line.split(";", maxsplit=1)[0].strip()
-            assert (
-                f"{package_name!r} is not version restricted and will be skipped."
-                in caplog.text
-            )
-            if ";" in line:
-                assert "os_name" in line or (
-                    "python_version" in line and "platform_version" in line
-                )
-        elif "name1" in line:
-            assert line == "name1<=1"
-        elif "name2" in line:
-            assert line == "name2>=3"
-        elif "name3" in line:
-            assert line == "name3>=3,<2"
-        elif "name4" in line:
-            assert line == "name4@http://foo.com"
-            assert "'name4' is pinned to a URL and will be skipped" in caplog.text
-        elif "name5" in line:
-            assert line == "name5 [fred,bar] @ http://foo.com ; python_version=='2.7'"
-            assert (
-                "'name5 [fred,bar]' is pinned to a URL and will be skipped"
-                in caplog.text
-            )
-        else:
-            pytest.fail(f"Unknown package in line: {line}")
+    # Check the non-version restricted packages are skipped with a message
+    for package_name in ["A", "A.B-C_D", "aa", "name"] + [
+        f"name{i}" for i in range(6, 12)
+    ]:
+        assert (
+            f"{package_name!r} is not version restricted and will be skipped."
+            in caplog.text
+        )
+
+    # Check the URL pinned packages are skipped with a message
+    for package_name in ["name4", "name5"]:
+        assert f"{package_name!r} is pinned to a URL and will be skipped" in caplog.text
+
+    for package_name in ["invoke", "mike", "pytest", "pre-commit"]:
+        assert f"Package {package_name!r} is already up-to-date" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -974,7 +988,7 @@ def test_ignore_version_fails() -> None:
             {
                 "invoke": "invoke ~=1.7",
                 "tomlkit[test,docs]": "tomlkit[test,docs] ~=0.11.4",
-                "mike": "mike >=1.0,<3",
+                "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.1",
                 "pre-commit": "pre-commit ~=2.20",
@@ -986,13 +1000,13 @@ def test_ignore_version_fails() -> None:
             ["dependency-name=invoke...versions=>=2"],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[test,docs]": "tomlkit[test,docs] ~=1.0.0",
-                "mike": "mike >=1.0,<3",
+                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.1",
                 "pre-commit": "pre-commit ~=2.20",
                 "pylint": "pylint ~=2.14",
-                "Sphinx": "Sphinx >=6.1.3,<6",
+                "Sphinx": "Sphinx >=4.5.0,<7",
             },
         ),
         (
@@ -1002,60 +1016,60 @@ def test_ignore_version_fails() -> None:
             ],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[test,docs]": "tomlkit[test,docs] ~=1.0.0",
-                "mike": "mike >=1.0,<3",
+                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.1",
                 "pre-commit": "pre-commit ~=2.20",
                 "pylint": "pylint ~=2.14",
-                "Sphinx": "Sphinx >=6.1.3,<6",
+                "Sphinx": "Sphinx >=4.5.0,<7",
             },
         ),
         (
             ["dependency-name=pylint...versions=~=2.14"],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[test,docs]": "tomlkit[test,docs] ~=1.0.0",
-                "mike": "mike >=1.0,<3",
+                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.1",
                 "pre-commit": "pre-commit ~=2.20",
                 "pylint": "pylint ~=2.13",
-                "Sphinx": "Sphinx >=6.1.3,<6",
+                "Sphinx": "Sphinx >=4.5.0,<7",
             },
         ),
         (
             ["dependency-name=pytest"],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[test,docs]": "tomlkit[test,docs] ~=1.0.0",
-                "mike": "mike >=1.0,<3",
+                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.1",
                 "pytest-cov": "pytest-cov ~=3.1",
                 "pre-commit": "pre-commit ~=2.20",
                 "pylint": "pylint ~=2.14",
-                "Sphinx": "Sphinx >=6.1.3,<6",
+                "Sphinx": "Sphinx >=4.5.0,<7",
             },
         ),
         (
             ["dependency-name=pytest-cov...update-types=version-update:semver-minor"],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[test,docs]": "tomlkit[test,docs] ~=1.0.0",
-                "mike": "mike >=1.0,<3",
+                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.0",
                 "pre-commit": "pre-commit ~=2.20",
                 "pylint": "pylint ~=2.14",
-                "Sphinx": "Sphinx >=6.1.3,<6",  # This should be fixed!
+                "Sphinx": "Sphinx >=4.5.0,<7",
             },
         ),
         (
             ["dependency-name=Sphinx...versions=>=4.5.0"],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[test,docs]": "tomlkit[test,docs] ~=1.0.0",
-                "mike": "mike >=1.0,<3",
+                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.1",
                 "pre-commit": "pre-commit ~=2.20",
@@ -1132,7 +1146,7 @@ dev = [
         run={
             re.compile(r".*invoke$"): "invoke (1.7.1)",
             re.compile(r".*tomlkit$"): "tomlkit (1.0.0)",
-            re.compile(r".*mike$"): "mike (1.0.1)",
+            re.compile(r".*mike$"): "mike (1.1.1)",
             re.compile(r".*pytest$"): "pytest (7.2.0)",
             re.compile(r".*pytest-cov$"): "pytest-cov (3.1.0)",
             re.compile(r".*pre-commit$"): "pre-commit (2.20.0)",

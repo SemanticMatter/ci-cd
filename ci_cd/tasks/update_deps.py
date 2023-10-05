@@ -155,6 +155,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             continue
 
         # Skip URL versioned dependencies
+        # BUT do regenerate the dependency in order to have a consistent formatting
         if parsed_requirement.url:
             msg = (
                 f"Dependency {parsed_requirement.name!r} is pinned to a URL and "
@@ -162,10 +163,28 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             )
             LOGGER.info(msg)
             print(info_msg(msg), flush=True)
+
+            # Regenerate the full requirement string
+            # Note: If any white space is present after the name (possibly incl.
+            # extras) is reduced to a single space.
+            match = re.search(rf"{parsed_requirement.name}(?:\[.*\])?\s+", dependency)
+            updated_dependency = regenerate_requirement(
+                parsed_requirement,
+                post_name_space=bool(match),
+            )
+            LOGGER.debug("Regenerated dependency: %r", updated_dependency)
+            if updated_dependency != dependency:
+                # Update pyproject.toml since the dependency formatting has changed
+                LOGGER.debug("Updating pyproject.toml for %r", parsed_requirement.name)
+                update_file(
+                    pyproject_path,
+                    (re.escape(dependency), updated_dependency.replace('"', "'")),
+                )
             already_handled_packages.add(parsed_requirement.name)
             continue
 
         # Skip and warn if package is not version-restricted
+        # BUT do regenerate the dependency in order to have a consistent formatting
         if not parsed_requirement.specifier:
             msg = (
                 f"Dependency {parsed_requirement.name!r} is not version "
@@ -173,6 +192,23 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             )
             LOGGER.warning(msg)
             print(warning_msg(msg), flush=True)
+
+            # Regenerate the full requirement string
+            # Note: If any white space is present after the name (possibly incl.
+            # extras) is reduced to a single space.
+            match = re.search(rf"{parsed_requirement.name}(?:\[.*\])?\s+", dependency)
+            updated_dependency = regenerate_requirement(
+                parsed_requirement,
+                post_name_space=bool(match),
+            )
+            LOGGER.debug("Regenerated dependency: %r", updated_dependency)
+            if updated_dependency != dependency:
+                # Update pyproject.toml since the dependency formatting has changed
+                LOGGER.debug("Updating pyproject.toml for %r", parsed_requirement.name)
+                update_file(
+                    pyproject_path,
+                    (re.escape(dependency), updated_dependency.replace('"', "'")),
+                )
             already_handled_packages.add(parsed_requirement.name)
             continue
 
@@ -223,6 +259,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
         # This is expected if the latest version equals a specifier with any of the
         # operators: ==, >=, or ~=.
         split_latest_version = latest_version.split(".")
+        _continue = False
         for specifier in parsed_requirement.specifier:
             if specifier.operator in ["==", ">=", "~="]:
                 split_specifier_version = specifier.version.split(".")
@@ -230,8 +267,17 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                     : len(split_specifier_version)
                 ]
                 if equal_length_latest_version == split_specifier_version:
+                    LOGGER.debug(
+                        "Package %r is already up-to-date. Specifiers: %s. "
+                        "Latest version: %s",
+                        parsed_requirement.name,
+                        parsed_requirement.specifier,
+                        latest_version,
+                    )
                     already_handled_packages.add(parsed_requirement.name)
-                    continue
+                    _continue = True
+        if _continue:
+            continue
 
         # Create ignore rules based on specifier set
         requirement_ignore_rules = create_ignore_rules(parsed_requirement.specifier)
@@ -268,29 +314,13 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             )
 
             # Get "current" version from specifier set, i.e., the lowest allowed version
+            # If a minimum version is not explicitly specified, use '0.0.0'
             for specifier in parsed_requirement.specifier:
-                if specifier.operator == "==":
-                    current_version = specifier.version.split(".")
-                    break
-                if specifier.operator == ">=":
-                    current_version = specifier.version.split(".")
-                    break
-                if specifier.operator == "~=":
+                if specifier.operator in ["==", ">=", "~="]:
                     current_version = specifier.version.split(".")
                     break
             else:
-                msg = (
-                    "Could not determine current version from specifier set "
-                    f"{parsed_requirement.specifier} for package "
-                    f"{parsed_requirement.name!r}."
-                )
-                LOGGER.error(msg)
-                if fail_fast:
-                    sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
-                print(error_msg(msg), flush=True)
-                already_handled_packages.add(parsed_requirement.name)
-                error = True
-                continue
+                current_version = "0.0.0".split(".")
 
             if ignore_version(
                 current=current_version,
@@ -301,7 +331,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                 already_handled_packages.add(parsed_requirement.name)
                 continue
 
-        # Update specifier set
+        # Update specifier set to include the latest version.
         try:
             updated_specifier_set = update_specifier_set(
                 latest_version=latest_version,
@@ -313,7 +343,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                 f"version range specifier set: {parsed_requirement.specifier}. "
                 f"Package: {parsed_requirement.name}. Latest version: {latest_version}"
             )
-            LOGGER.error(msg)
+            LOGGER.error("%s. Exception: %s", msg, exc)
             if fail_fast:
                 sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
             print(error_msg(msg), flush=True)
@@ -334,10 +364,23 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             LOGGER.debug("Updated dependency: %r", updated_dependency)
 
             # Update pyproject.toml
-            update_file(pyproject_path, (re.escape(dependency), updated_dependency))
+            update_file(
+                pyproject_path,
+                (re.escape(dependency), updated_dependency.replace('"', "'")),
+            )
             already_handled_packages.add(parsed_requirement.name)
-            updated_packages[parsed_requirement.name] = str(updated_specifier_set) + (
-                f"; {parsed_requirement.marker}" if parsed_requirement.marker else ""
+            updated_packages[parsed_requirement.name] = (
+                ",".join(
+                    str(_)
+                    for _ in sorted(
+                        updated_specifier_set,
+                        key=lambda spec: spec.operator,
+                        reverse=True,
+                    )
+                )
+                + f" ; {parsed_requirement.marker}"
+                if parsed_requirement.marker
+                else ""
             )
 
     if error:
