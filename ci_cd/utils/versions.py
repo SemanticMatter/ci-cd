@@ -3,15 +3,15 @@ import operator
 import re
 from typing import TYPE_CHECKING, no_type_check
 
-from pip._vendor.packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
+from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 
 from ci_cd.exceptions import InputError, InputParserError, UnableToResolve
 
 if TYPE_CHECKING:  # pragma: no cover
     from typing import Any, Literal, Optional, Union
 
-    from pip._vendor.packaging.markers import Marker
-    from pip._vendor.packaging.requirements import Requirement
+    from packaging.markers import Marker
+    from packaging.requirements import Requirement
 
     IgnoreEntry = dict[Literal["dependency-name", "versions", "update-types"], str]
 

@@ -30,6 +30,7 @@ dynamic = ["version", "description"]
 
 dependencies = [
     "invoke ~=2.2",
+    "packaging ~=23.2",
     "tomlkit ~=0.12.1",
 ]
 

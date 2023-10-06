@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import tomlkit
 from invoke import task
-from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
+from packaging.requirements import InvalidRequirement, Requirement
 from tomlkit.exceptions import TOMLKitError
 
 from ci_cd.exceptions import CICDException, InputError, UnableToResolve
