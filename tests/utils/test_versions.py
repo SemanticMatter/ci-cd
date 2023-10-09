@@ -1,5 +1,7 @@
 """Tests for utils/versions.py"""
 # pylint: disable=too-many-lines
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import pytest
