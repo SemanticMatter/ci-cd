@@ -133,6 +133,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             f"repository's 'pyproject.toml' file at: {pyproject_path}"
         )
 
+    # Parse pyproject.toml
     try:
         pyproject = tomlkit.parse(pyproject_path.read_bytes())
     except TOMLKitError as exc:
@@ -141,6 +142,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             f"at: {pyproject_path}\nException: {exc}"
         )
 
+    # Retrieve the minimum required Python version
     try:
         py_version = get_min_max_py_version(
             pyproject.get("project", {}).get("requires-python", "")
@@ -152,15 +154,26 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
         )
     LOGGER.debug("Minimum required Python version: %s", py_version)
 
-    already_handled_packages = set()
-    updated_packages = {}
+    # Retrieve the Python project's package name
+    project_name = pyproject.get("project", {}).get("name", "")
+    if not project_name:
+        sys.exit(
+            f"{Emoji.CROSS_MARK.value} Error: Could not find the Python project's name"
+            " in 'pyproject.toml'."
+        )
+
+    # Build the list of dependencies listed in pyproject.toml
     dependencies: list[str] = pyproject.get("project", {}).get("dependencies", [])
     for optional_deps in (
         pyproject.get("project", {}).get("optional-dependencies", {}).values()
     ):
         dependencies.extend(optional_deps)
 
+    # Placeholder and default variables
+    already_handled_packages = set()
+    updated_packages = {}
     error = False
+
     for dependency in dependencies:
         try:
             parsed_requirement = Requirement(dependency)
@@ -200,12 +213,15 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
         # Skip and warn if package is not version-restricted
         # BUT do regenerate the dependency in order to have a consistent formatting
         if not parsed_requirement.specifier:
-            msg = (
-                f"Dependency {parsed_requirement.name!r} is not version "
-                "restricted and will be skipped. Consider adding version restrictions."
-            )
-            LOGGER.warning(msg)
-            print(warning_msg(msg), flush=True)
+            # Only warn if package name does not match project name
+            if parsed_requirement.name != project_name:
+                msg = (
+                    f"Dependency {parsed_requirement.name!r} is not version "
+                    "restricted and will be skipped. Consider adding version "
+                    "restrictions."
+                )
+                LOGGER.warning(msg)
+                print(warning_msg(msg), flush=True)
 
             _format_and_update_dependency(
                 parsed_requirement, dependency, pyproject_path

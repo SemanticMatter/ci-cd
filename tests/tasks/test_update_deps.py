@@ -31,6 +31,7 @@ def test_update_deps(tmp_path: "Path", caplog: pytest.LogCaptureFixture) -> None
     pyproject_file.write_text(
         data=f"""
 [project]
+name = "ci-cd"
 requires-python = "~=3.7"
 
 dependencies = [
@@ -113,6 +114,7 @@ pep_508 = [
     #   (pre-commit)
     expected_updated_pyproject_file = f"""
 [project]
+name = "ci-cd"
 requires-python = "~=3.7"
 
 dependencies = [
@@ -309,6 +311,7 @@ def test_ignore_rules_logic(
     pyproject_file.write_text(
         data="""
 [project]
+name = "ci-cd"
 requires-python = "~=3.7"
 
 dependencies = [
@@ -388,6 +391,7 @@ def test_python_version_marker(
     pyproject_file.write_text(
         data="""
 [project]
+name = "ci-cd"
 requires-python = "~=3.6"
 
 dependencies = [
@@ -407,6 +411,7 @@ dependencies = [
 
     expected_updated_pyproject_file = """
 [project]
+name = "ci-cd"
 requires-python = "~=3.6"
 
 dependencies = [
@@ -426,3 +431,85 @@ dependencies = [
 
     assert "Min/max Python version from marker: 3.7" in caplog.text
     assert "Min/max Python version from marker: 3.8" in caplog.text
+
+
+def test_no_warn_when_project_name(
+    tmp_path: "Path", caplog: pytest.LogCaptureFixture
+) -> None:
+    """Check no warning is emitted if a dependency is also the project name.
+
+    This is only relevant when no specifiers are given.
+    """
+    import re
+
+    from invoke import MockContext
+
+    from ci_cd.tasks.update_deps import update_deps
+
+    pyproject_file = tmp_path / "pyproject.toml"
+    pyproject_file.write_text(
+        data="""
+[project]
+name = "ci-cd"
+requires-python = "~=3.6"
+
+dependencies = [
+    "oteapi-core ~=0.2.0",
+]
+
+[project.optional-dependencies]
+docs = [
+    "mkdocs >=1.1,<2",
+]
+dev = [
+    "ci-cd[docs]",
+    "pytest",
+]
+""",
+        encoding="utf8",
+    )
+
+    context = MockContext(
+        run={
+            re.compile(r".*oteapi-core$"): "oteapi-core (2.0.0)",
+            re.compile(r".*mkdocs$"): "mkdocs (1.2.3)",
+            re.compile(r".*pytest$"): "pytest (7.4.3)",
+        }
+    )
+
+    expected_updated_pyproject_file = """
+[project]
+name = "ci-cd"
+requires-python = "~=3.6"
+
+dependencies = [
+    "oteapi-core >=0.2.0,<3",
+]
+
+[project.optional-dependencies]
+docs = [
+    "mkdocs >=1.1,<2",
+]
+dev = [
+    "ci-cd[docs]",
+    "pytest",
+]
+"""
+
+    update_deps(
+        context,
+        root_repo_path=str(tmp_path),
+    )
+
+    updated_pyproject_file = pyproject_file.read_text(encoding="utf8")
+
+    assert updated_pyproject_file == expected_updated_pyproject_file
+
+    assert (
+        "Dependency 'pytest' is not version restricted and will be skipped."
+        in caplog.text
+    )
+    assert (
+        "Dependency 'ci-cd' is not version restricted and will be skipped."
+        not in caplog.text
+    )
