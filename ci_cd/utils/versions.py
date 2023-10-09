@@ -284,11 +284,65 @@ class SemanticVersion(str):
             )
 
         if version_part == "major":
-            return self.__class__(f"{self.major + 1}.0.0")
-        if version_part == "minor":
-            return self.__class__(f"{self.major}.{self.minor + 1}.0")
+            next_version = f"{self.major + 1}.0.0"
+        elif version_part == "minor":
+            next_version = f"{self.major}.{self.minor + 1}.0"
+        else:
+            next_version = f"{self.major}.{self.minor}.{self.patch + 1}"
 
-        return self.__class__(f"{self.major}.{self.minor}.{self.patch + 1}")
+        return self.__class__(next_version)
+
+    def previous_version(
+        self, version_part: str, max_filler: "Optional[Union[str, int]]" = 99
+    ) -> "SemanticVersion":
+        """Return the previous version for the specified version part.
+
+        Parameters:
+            version_part: The version part to decrement.
+            max_filler: The maximum value for the version part to decrement.
+
+        Returns:
+            The previous version.
+
+        Raises:
+            ValueError: If the version part is not one of `major`, `minor`, or `patch`.
+
+        """
+        if version_part not in ("major", "minor", "patch"):
+            raise ValueError(
+                "version_part must be one of 'major', 'minor', or 'patch', not "
+                f"{version_part!r}"
+            )
+
+        if max_filler is None:
+            max_filler = 99
+        elif isinstance(max_filler, str):
+            max_filler = int(max_filler)
+
+        if not isinstance(max_filler, int):
+            raise TypeError("max_filler must be an integer, string or None")
+
+        if version_part == "major":
+            prev_version = f"{self.major - 1}.{max_filler}.{max_filler}"
+
+        elif version_part == "minor":
+            prev_version = (
+                f"{self.major -1 }.{max_filler}.{max_filler}"
+                if self.minor == 0
+                else f"{self.major}.{self.minor - 1}.{max_filler}"
+            )
+
+        else:
+            if self.patch == 0:
+                prev_version = (
+                    f"{self.major - 1}.{max_filler}.{max_filler}"
+                    if self.minor == 0
+                    else f"{self.major}.{self.minor - 1}.{max_filler}"
+                )
+            else:
+                prev_version = f"{self.major}.{self.minor}.{self.patch - 1}"
+
+        return self.__class__(prev_version)
 
     def shortened(self) -> str:
         """Return a shortened version of the version.
@@ -780,7 +834,7 @@ def update_specifier_set(
     return SpecifierSet(",".join(str(_) for _ in new_specifier_set))
 
 
-def get_min_max_py_version(  # pylint: disable=too-many-branches
+def get_min_max_py_version(
     requires_python: "Union[str, Marker]",
 ) -> str:
     """Get minimum or maximum Python version from `requires_python`.
@@ -812,6 +866,7 @@ def get_min_max_py_version(  # pylint: disable=too-many-branches
         if specifier.operator == ">":
             split_version = specifier.version.split(".")
             parsed_version = SemanticVersion(specifier.version)
+
             if len(split_version) == 1:
                 py_version = str(parsed_version.next_version("major").major)
             elif len(split_version) == 2:
@@ -820,6 +875,7 @@ def get_min_max_py_version(  # pylint: disable=too-many-branches
                 )
             elif len(split_version) == 3:
                 py_version = str(parsed_version.next_version("patch"))
+
             break
 
         # Maximum
@@ -837,27 +893,11 @@ def get_min_max_py_version(  # pylint: disable=too-many-branches
                 )
 
             if len(split_version) == 1:
-                py_version = f"{parsed_version.major - 1}.99.99"
-
+                py_version = str(parsed_version.previous_version("major"))
             elif len(split_version) == 2:
-                if parsed_version.minor == 0:
-                    py_version = f"{parsed_version.major - 1}.99.99"
-                else:
-                    py_version = f"{parsed_version.major}.{parsed_version.minor - 1}.99"
-
+                py_version = str(parsed_version.previous_version("minor"))
             elif len(split_version) == 3:
-                if parsed_version.patch == 0:
-                    if parsed_version.minor == 0:
-                        py_version = f"{parsed_version.major - 1}.99.99"
-                    else:
-                        py_version = (
-                            f"{parsed_version.major}.{parsed_version.minor - 1}.99"
-                        )
-                else:
-                    py_version = (
-                        f"{parsed_version.major}.{parsed_version.minor}."
-                        f"{parsed_version.patch - 1}"
-                    )
+                py_version = str(parsed_version.previous_version("patch"))
 
             break
     else:
