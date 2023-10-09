@@ -13,14 +13,17 @@ from typing import TYPE_CHECKING
 
 import tomlkit
 from invoke import task
+from packaging.markers import default_environment
 from packaging.requirements import InvalidRequirement, Requirement
 from tomlkit.exceptions import TOMLKitError
 
-from ci_cd.exceptions import CICDException, InputError, UnableToResolve
+from ci_cd.exceptions import InputError, UnableToResolve
 from ci_cd.utils import (
     Emoji,
     create_ignore_rules,
     error_msg,
+    find_minimum_py_version,
+    get_min_max_py_version,
     ignore_version,
     info_msg,
     parse_ignore_entries,
@@ -39,6 +42,29 @@ if TYPE_CHECKING:  # pragma: no cover
 
 LOGGER = logging.getLogger(__file__)
 LOGGER.setLevel(logging.DEBUG)
+
+
+def _format_and_update_dependency(
+    requirement: Requirement, raw_dependency_line: str, pyproject_path: Path
+) -> None:
+    """Regenerate dependency without changing anything but the formatting.
+
+    NOTE: If any white space is present after the name (incl. possible extras) it is
+    reduced to a single space.
+    """
+    match = re.search(rf"{requirement.name}(?:\[.*\])?\s+", raw_dependency_line)
+    updated_dependency = regenerate_requirement(
+        requirement,
+        post_name_space=bool(match),
+    )
+    LOGGER.debug("Regenerated dependency: %r", updated_dependency)
+    if updated_dependency != raw_dependency_line:
+        # Update pyproject.toml since the dependency formatting has changed
+        LOGGER.debug("Updating pyproject.toml for %r", requirement.name)
+        update_file(
+            pyproject_path,
+            (re.escape(raw_dependency_line), updated_dependency.replace('"', "'")),
+        )
 
 
 @task(
@@ -115,15 +141,16 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             f"at: {pyproject_path}\nException: {exc}"
         )
 
-    match = re.match(
-        r"^.*(?P<version>3\.[0-9]+)$",
-        pyproject.get("project", {}).get("requires-python", ""),
-    )
-    if not match:
-        raise CICDException(
-            "No minimum Python version requirement given in pyproject.toml!"
+    try:
+        py_version = get_min_max_py_version(
+            pyproject.get("project", {}).get("requires-python", "")
         )
-    py_version = match.group("version")
+    except UnableToResolve as exc:
+        sys.exit(
+            f"{Emoji.CROSS_MARK.value} Error: Cannot determine minimum Python version."
+            f"\nException: {exc}"
+        )
+    LOGGER.debug("Minimum required Python version: %s", py_version)
 
     already_handled_packages = set()
     updated_packages = {}
@@ -151,7 +178,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
         LOGGER.debug("Parsed requirement: %r", parsed_requirement)
 
         # Skip package if already handled
-        if parsed_requirement.name in already_handled_packages:
+        if parsed_requirement in already_handled_packages:
             continue
 
         # Skip URL versioned dependencies
@@ -164,23 +191,10 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             LOGGER.info(msg)
             print(info_msg(msg), flush=True)
 
-            # Regenerate the full requirement string
-            # Note: If any white space is present after the name (possibly incl.
-            # extras) is reduced to a single space.
-            match = re.search(rf"{parsed_requirement.name}(?:\[.*\])?\s+", dependency)
-            updated_dependency = regenerate_requirement(
-                parsed_requirement,
-                post_name_space=bool(match),
+            _format_and_update_dependency(
+                parsed_requirement, dependency, pyproject_path
             )
-            LOGGER.debug("Regenerated dependency: %r", updated_dependency)
-            if updated_dependency != dependency:
-                # Update pyproject.toml since the dependency formatting has changed
-                LOGGER.debug("Updating pyproject.toml for %r", parsed_requirement.name)
-                update_file(
-                    pyproject_path,
-                    (re.escape(dependency), updated_dependency.replace('"', "'")),
-                )
-            already_handled_packages.add(parsed_requirement.name)
+            already_handled_packages.add(parsed_requirement)
             continue
 
         # Skip and warn if package is not version-restricted
@@ -193,28 +207,36 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             LOGGER.warning(msg)
             print(warning_msg(msg), flush=True)
 
-            # Regenerate the full requirement string
-            # Note: If any white space is present after the name (possibly incl.
-            # extras) is reduced to a single space.
-            match = re.search(rf"{parsed_requirement.name}(?:\[.*\])?\s+", dependency)
-            updated_dependency = regenerate_requirement(
-                parsed_requirement,
-                post_name_space=bool(match),
+            _format_and_update_dependency(
+                parsed_requirement, dependency, pyproject_path
             )
-            LOGGER.debug("Regenerated dependency: %r", updated_dependency)
-            if updated_dependency != dependency:
-                # Update pyproject.toml since the dependency formatting has changed
-                LOGGER.debug("Updating pyproject.toml for %r", parsed_requirement.name)
-                update_file(
-                    pyproject_path,
-                    (re.escape(dependency), updated_dependency.replace('"', "'")),
-                )
-            already_handled_packages.add(parsed_requirement.name)
+            already_handled_packages.add(parsed_requirement)
             continue
+
+        # Examine markers for a custom set of Python version specifiers
+        marker_py_version = ""
+        if parsed_requirement.marker:
+            environment_keys = default_environment().keys()
+            empty_environment = {key: "" for key in environment_keys}
+            python_version_centric_environment = empty_environment
+            python_version_centric_environment.update({"python_version": py_version})
+
+            if not parsed_requirement.marker.evaluate(
+                environment=python_version_centric_environment
+            ):
+                # Current (minimum) Python version does NOT satisfy the marker
+                marker_py_version = find_minimum_py_version(
+                    parsed_requirement.marker, py_version
+                )
+
+            marker_py_version = get_min_max_py_version(parsed_requirement.marker)
+            LOGGER.debug("Min/max Python version from marker: %s", marker_py_version)
 
         # Check version from PyPI's online package index
         out: "Result" = context.run(
-            f"pip index versions --python-version {py_version} {parsed_requirement.name}",
+            "pip index versions "
+            f"--python-version {marker_py_version or py_version} "
+            f"{parsed_requirement.name}",
             hide=True,
         )
         package_latest_version_line = out.stdout.split(sep="\n", maxsplit=1)[0]
@@ -231,7 +253,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             if fail_fast:
                 sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
             print(error_msg(msg), flush=True)
-            already_handled_packages.add(parsed_requirement.name)
+            already_handled_packages.add(parsed_requirement)
             error = True
             continue
 
@@ -251,7 +273,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             if fail_fast:
                 sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
             print(error_msg(msg), flush=True)
-            already_handled_packages.add(parsed_requirement.name)
+            already_handled_packages.add(parsed_requirement)
             error = True
             continue
 
@@ -274,7 +296,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                         parsed_requirement.specifier,
                         latest_version,
                     )
-                    already_handled_packages.add(parsed_requirement.name)
+                    already_handled_packages.add(parsed_requirement)
                     _continue = True
         if _continue:
             continue
@@ -332,7 +354,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                 version_rules=versions,
                 semver_rules=update_types,
             ):
-                already_handled_packages.add(parsed_requirement.name)
+                already_handled_packages.add(parsed_requirement)
                 continue
 
         # Update specifier set to include the latest version.
@@ -351,7 +373,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             if fail_fast:
                 sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
             print(error_msg(msg), flush=True)
-            already_handled_packages.add(parsed_requirement.name)
+            already_handled_packages.add(parsed_requirement)
             error = True
             continue
 
@@ -372,7 +394,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
                 pyproject_path,
                 (re.escape(dependency), updated_dependency.replace('"', "'")),
             )
-            already_handled_packages.add(parsed_requirement.name)
+            already_handled_packages.add(parsed_requirement)
             updated_packages[parsed_requirement.name] = ",".join(
                 str(_)
                 for _ in sorted(

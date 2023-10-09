@@ -372,3 +372,57 @@ dev = [
                 break
         else:
             pytest.fail(f"Unknown package in line: {line}")
+
+
+def test_python_version_marker(
+    tmp_path: "Path", caplog: pytest.LogCaptureFixture
+) -> None:
+    """Check the python version marker is respected."""
+    import re
+
+    from invoke import MockContext
+
+    from ci_cd.tasks.update_deps import update_deps
+
+    pyproject_file = tmp_path / "pyproject.toml"
+    pyproject_file.write_text(
+        data="""
+[project]
+requires-python = "~=3.6"
+
+dependencies = [
+    "oteapi-core ~=0.1.0; python_version <= '3.7'",
+    "oteapi-core ~=0.2.0; python_version > '3.7'",
+]
+""",
+        encoding="utf8",
+    )
+
+    context = MockContext(
+        run={
+            re.compile(r".*3.7 oteapi-core$"): "oteapi-core (0.1.9)",
+            re.compile(r".*3.8 oteapi-core$"): "oteapi-core (1.0.1)",
+        }
+    )
+
+    expected_updated_pyproject_file = """
+[project]
+requires-python = "~=3.6"
+
+dependencies = [
+    "oteapi-core ~=0.1.9; python_version <= '3.7'",
+    "oteapi-core >=0.2.0,<2; python_version > '3.7'",
+]
+"""
+
+    update_deps(
+        context,
+        root_repo_path=str(tmp_path),
+    )
+
+    updated_pyproject_file = pyproject_file.read_text(encoding="utf8")
+
+    assert updated_pyproject_file == expected_updated_pyproject_file
+
+    assert "Min/max Python version from marker: 3.7" in caplog.text
+    assert "Min/max Python version from marker: 3.8" in caplog.text

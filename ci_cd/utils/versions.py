@@ -3,9 +3,15 @@ import operator
 import re
 from typing import TYPE_CHECKING, no_type_check
 
+from packaging.markers import default_environment
 from packaging.specifiers import InvalidSpecifier, Specifier, SpecifierSet
 
-from ci_cd.exceptions import InputError, InputParserError, UnableToResolve
+from ci_cd.exceptions import (
+    CICDException,
+    InputError,
+    InputParserError,
+    UnableToResolve,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
     from typing import Any, Literal, Optional, Union
@@ -283,6 +289,22 @@ class SemanticVersion(str):
             return self.__class__(f"{self.major}.{self.minor + 1}.0")
 
         return self.__class__(f"{self.major}.{self.minor}.{self.patch + 1}")
+
+    def shortened(self) -> str:
+        """Return a shortened version of the version.
+
+        The shortened version is the full version, but without the patch and/or minor
+        version if they are `0`, and without the pre-release and build metadata parts.
+
+        Returns:
+            The shortened version.
+
+        """
+        if self.patch == 0:
+            if self.minor == 0:
+                return str(self.major)
+            return f"{self.major}.{self.minor}"
+        return f"{self.major}.{self.minor}.{self.patch}"
 
 
 def parse_ignore_entries(entries: list[str], separator: str) -> "IgnoreRulesCollection":
@@ -756,3 +778,139 @@ def update_specifier_set(
         )
 
     return SpecifierSet(",".join(str(_) for _ in new_specifier_set))
+
+
+def get_min_max_py_version(  # pylint: disable=too-many-branches
+    requires_python: "Union[str, Marker]",
+) -> str:
+    """Get minimum or maximum Python version from `requires_python`.
+
+    Whether it will minimum or maximum will depend on the operator:
+    Minimum: `>=`, `==`, `~=`, `>`
+    Maximum: `<=`, `<`
+    """
+    if not isinstance(requires_python, str):
+        match = re.search(
+            r"python_version\s*"
+            r"(?P<operator>==|!=|<=|>=|<|>|~=)\s*"
+            r"('|\")(?P<version>[0-9]+(?:\.[0-9]+)*)('|\")",
+            str(requires_python),
+        )
+        if match is None:
+            raise CICDException("Could not retrieve 'python_version' marker.")
+        requires_python = f"{match.group('operator')}{match.group('version')}"
+
+    specifier_set = SpecifierSet(requires_python)
+
+    py_version = ""
+    for specifier in specifier_set:
+        # Minimum
+        if specifier.operator in [">=", "==", "~="]:
+            py_version = specifier.version
+            break
+
+        if specifier.operator == ">":
+            split_version = specifier.version.split(".")
+            parsed_version = SemanticVersion(specifier.version)
+            if len(split_version) == 1:
+                py_version = str(parsed_version.next_version("major").major)
+            elif len(split_version) == 2:
+                py_version = ".".join(
+                    parsed_version.next_version("minor").split(".")[:2]
+                )
+            elif len(split_version) == 3:
+                py_version = str(parsed_version.next_version("patch"))
+            break
+
+        # Maximum
+        if specifier.operator == "<=":
+            py_version = specifier.version
+            break
+
+        if specifier.operator == "<":
+            split_version = specifier.version.split(".")
+            parsed_version = SemanticVersion(specifier.version)
+
+            if parsed_version == SemanticVersion("0"):
+                raise UnableToResolve(
+                    f"{specifier} is not a valid Python version specifier."
+                )
+
+            if len(split_version) == 1:
+                py_version = f"{parsed_version.major - 1}.99.99"
+
+            elif len(split_version) == 2:
+                if parsed_version.minor == 0:
+                    py_version = f"{parsed_version.major - 1}.99.99"
+                else:
+                    py_version = f"{parsed_version.major}.{parsed_version.minor - 1}.99"
+
+            elif len(split_version) == 3:
+                if parsed_version.patch == 0:
+                    if parsed_version.minor == 0:
+                        py_version = f"{parsed_version.major - 1}.99.99"
+                    else:
+                        py_version = (
+                            f"{parsed_version.major}.{parsed_version.minor - 1}.99"
+                        )
+                else:
+                    py_version = (
+                        f"{parsed_version.major}.{parsed_version.minor}."
+                        f"{parsed_version.patch - 1}"
+                    )
+
+            break
+    else:
+        raise UnableToResolve(
+            "Cannot determine min/max Python version from version specifier(s): "
+            f"{specifier_set}"
+        )
+
+    return py_version
+
+
+def find_minimum_py_version(marker: "Marker", project_py_version: str) -> str:
+    """Find the minimum Python version from a marker."""
+    split_py_version = project_py_version.split(".")
+
+    def _next_version(_version: SemanticVersion) -> SemanticVersion:
+        if len(split_py_version) == 1:
+            return _version.next_version("major")
+        if len(split_py_version) == 2:
+            return _version.next_version("minor")
+        return _version.next_version("patch")
+
+    def _semi_valid_python_version(_version: SemanticVersion) -> bool:
+        """Check if a version is a valid Python version.
+
+        This check is only semi-valid, since it only checks that each individual
+        version part is valid within any range of the others.
+        E.g., 3.6.15 is valid, but 3.6.18 is not, since 18 is not a valid patch version
+        for Python 3.6, however, it is a valid patch version for Python 3.8.
+
+        """
+        if _version.major not in range(1, 3 + 1):
+            # Not a valid Python major version (1, 2, or 3)
+            return False
+        if _version.minor not in range(0, 12 + 1):
+            # Not a valid Python minor version (1, 2, ..., 12)
+            return False
+        if _version.patch not in range(0, 18 + 1):
+            # Not a valid Python patch version (1, 2, ..., 18)
+            return False
+        return True
+
+    min_py_version = SemanticVersion(project_py_version)
+
+    environment_keys = default_environment().keys()
+    empty_environment = {key: "" for key in environment_keys}
+    python_version_centric_environment = empty_environment
+    python_version_centric_environment.update({"python_version": min_py_version})
+
+    while not _semi_valid_python_version(min_py_version) or not marker.evaluate(
+        environment=python_version_centric_environment
+    ):
+        min_py_version = _next_version(min_py_version)
+        python_version_centric_environment.update({"python_version": min_py_version})
+
+    return min_py_version.shortened()

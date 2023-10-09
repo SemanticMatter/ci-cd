@@ -4,6 +4,8 @@ from .file_io import update_file
 from .versions import (
     SemanticVersion,
     create_ignore_rules,
+    find_minimum_py_version,
+    get_min_max_py_version,
     ignore_version,
     parse_ignore_entries,
     parse_ignore_rules,
@@ -23,5 +25,7 @@ __all__ = [
     "create_ignore_rules",
     "regenerate_requirement",
     "update_specifier_set",
+    "get_min_max_py_version",
+    "find_minimum_py_version",
     "ignore_version",
 ]
