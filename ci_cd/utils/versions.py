@@ -1,4 +1,6 @@
 """Handle versions."""
+from __future__ import annotations
+
 import operator
 import re
 from typing import TYPE_CHECKING, no_type_check
