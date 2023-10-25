@@ -70,6 +70,7 @@ The repository contains the following:
 | `pr_labels` | A comma separated list of strings of GitHub labels to use for the created PR. | No | _Empty string_ | _string_ |
 | `ignore` | Create ignore conditions for certain dependencies. A multi-line string of ignore rules, where each line is an ellipsis-separated (`...`) string of key/value-pairs. One line per dependency. This option is similar to [the `ignore` option of Dependabot](https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#ignore).</br></br>See also [Single vs multi-line input](index.md#single-vs-multi-line-input). | No | _Empty string_ | _string_
 | `branch_name_extension` | A string to append to the branch name of the created PR. Example: `'-my-branch'`. It will be appended after a forward slash, so the final branch name will be `ci/update-pyproject/-my-branch`. | No | _Empty string_ | _string_ |
+| `debug` | Whether to run the workflow in debug mode, printing extra debug information. | No | `false` | _boolean_ |
 
 ## Secrets
 
