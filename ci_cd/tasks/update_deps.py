@@ -90,6 +90,7 @@ def _format_and_update_dependency(
             "Value to use instead of ellipsis (`...`) as a separator in `--ignore` "
             "key/value-pairs."
         ),
+        "verbose": "Whether or not to print debug statements.",
     },
     iterable=["ignore"],
 )
@@ -100,6 +101,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
     pre_commit=False,
     ignore=None,
     ignore_separator="...",
+    verbose=False,
 ):
     """Update dependencies in specified Python package's `pyproject.toml`."""
     if TYPE_CHECKING:  # pragma: no cover
@@ -108,9 +110,15 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
         fail_fast: bool = fail_fast  # type: ignore[no-redef]
         pre_commit: bool = pre_commit  # type: ignore[no-redef]
         ignore_separator: str = ignore_separator  # type: ignore[no-redef]
+        verbose: bool = verbose  # type: ignore[no-redef]
 
     if not ignore:
         ignore: list[str] = []  # type: ignore[no-redef]
+
+    if verbose:
+        LOGGER.setLevel(logging.DEBUG)
+        LOGGER.addHandler(logging.StreamHandler(sys.stdout))
+        LOGGER.debug("Verbose logging enabled.")
 
     try:
         ignore_rules = parse_ignore_entries(ignore, ignore_separator)
@@ -162,6 +170,10 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             " in 'pyproject.toml'."
         )
 
+    # Skip package if it is this project (this can happen for inter-relative extra
+    # dependencies)
+    already_handled_packages: set[str] = {project_name}
+
     # Build the list of dependencies listed in pyproject.toml
     dependencies: list[str] = pyproject.get("project", {}).get("dependencies", [])
     for optional_deps in (
@@ -170,7 +182,6 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
         dependencies.extend(optional_deps)
 
     # Placeholder and default variables
-    already_handled_packages = set()
     updated_packages = {}
     error = False
 
@@ -405,11 +416,14 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             )
             LOGGER.debug("Updated dependency: %r", updated_dependency)
 
+            pattern_sub_line = re.escape(dependency)
+            replacement_sub_line = updated_dependency.replace('"', "'")
+
+            LOGGER.debug("pattern_sub_line: %s", pattern_sub_line)
+            LOGGER.debug("replacement_sub_line: %s", replacement_sub_line)
+
             # Update pyproject.toml
-            update_file(
-                pyproject_path,
-                (re.escape(dependency), updated_dependency.replace('"', "'")),
-            )
+            update_file(pyproject_path, (pattern_sub_line, replacement_sub_line))
             already_handled_packages.add(parsed_requirement)
             updated_packages[parsed_requirement.name] = ",".join(
                 str(_)

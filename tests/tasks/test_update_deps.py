@@ -31,7 +31,7 @@ def test_update_deps(tmp_path: "Path", caplog: pytest.LogCaptureFixture) -> None
     pyproject_file.write_text(
         data=f"""
 [project]
-name = "ci-cd"
+name = "test"
 requires-python = "~=3.7"
 
 dependencies = [
@@ -49,10 +49,9 @@ testing = [
 ]
 dev = [
     "mike >={original_dependencies['mike']},<3",
-    "pytest ~={original_dependencies['pytest']}",
-    "pytest-cov ~={original_dependencies['pytest-cov']},!=3.1",
-    # "pre-commit ~={original_dependencies['pre-commit']},!=2.21.*",
-    "pylint ~={original_dependencies['pylint']}",
+    "pre-commit~={original_dependencies['pre-commit']}",
+    # "pylint ~={original_dependencies['pylint']},!=2.14.*",
+    "test[testing]",
 ]
 
 # List from https://peps.python.org/pep-0508/#complete-grammar
@@ -90,7 +89,7 @@ pep_508 = [
                 re.compile(r".*pytest$"): "pytest (7.1.0)",
                 re.compile(r".*pytest-cov$"): "pytest-cov (3.1.5)",
                 re.compile(r".*pre-commit$"): "pre-commit (2.21.5)",
-                re.compile(r".*pylint$"): "pylint (2.14.0)",
+                re.compile(r".*pylint$"): "pylint (2.14.2)",
                 re.compile(r".* A$"): "A (1.2.3)",
                 re.compile(r".*A.B-C_D$"): "A.B-C_D (1.2.3)",
                 re.compile(r".*aa$"): "aa (1.2.3)",
@@ -109,12 +108,12 @@ pep_508 = [
     # - Similar formatting, even if the dependency is otherwise skipped
     #   (name4 to name11)
     # - Acknowledge that !=3.1 expands to !=3.1.0, so 3.1.5 is allowed (pytest-cov)
-    # - TODO: Acknowledge that !=2.21.* includes not wanting *all* sub-versions of 2.21,
-    #   so 2.21.5 is excluded and should not be part of the updated specifier set
-    #   (pre-commit)
+    # - TODO: Acknowledge that !=2.14.* includes not wanting *all* sub-versions of 2.14,
+    #   so 2.14.2 is excluded and should not be part of the updated specifier set
+    #   (pylint)
     expected_updated_pyproject_file = f"""
 [project]
-name = "ci-cd"
+name = "test"
 requires-python = "~=3.7"
 
 dependencies = [
@@ -132,10 +131,9 @@ testing = [
 ]
 dev = [
     "mike >={original_dependencies['mike']},<3",
-    "pytest ~={original_dependencies['pytest']}",
-    "pytest-cov ~=3.1,!=3.1",
-    # "pre-commit ~={original_dependencies['pre-commit']},!=2.21.*",
-    "pylint ~=2.14",
+    "pre-commit~=2.21",
+    # "pylint ~={original_dependencies['pylint']},!=2.14.*",
+    "test[testing]",
 ]
 
 # List from https://peps.python.org/pep-0508/#complete-grammar
@@ -180,10 +178,17 @@ pep_508 = [
             in caplog.text
         )
 
+    # Check a warning is not emitted for the non-version inter-relative dependency.
+    assert (
+        "'test[testing]' is not version restricted and will be skipped."
+        not in caplog.text
+    )
+
     # Check the URL pinned packages are skipped with a message
     for package_name in ["name4", "name5"]:
         assert f"{package_name!r} is pinned to a URL and will be skipped" in caplog.text
 
+    # Check the already up-to-date packages are skipped with a message
     for package_name in ["invoke", "mike", "pytest"]:
         assert f"Package {package_name!r} is already up-to-date" in caplog.text
 
@@ -199,7 +204,7 @@ pep_508 = [
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.1",
-                "pre-commit": "pre-commit ~=2.20",
+                "pre-commit": "pre-commit~=2.20",
                 "pylint": "pylint ~=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<6",
             },
@@ -212,7 +217,7 @@ pep_508 = [
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.1",
-                "pre-commit": "pre-commit ~=2.20",
+                "pre-commit": "pre-commit~=2.20",
                 "pylint": "pylint ~=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<7",
             },
@@ -228,7 +233,7 @@ pep_508 = [
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.1",
-                "pre-commit": "pre-commit ~=2.20",
+                "pre-commit": "pre-commit~=2.20",
                 "pylint": "pylint ~=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<7",
             },
@@ -241,7 +246,7 @@ pep_508 = [
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.1",
-                "pre-commit": "pre-commit ~=2.20",
+                "pre-commit": "pre-commit~=2.20",
                 "pylint": "pylint ~=2.13",
                 "Sphinx": "Sphinx >=4.5.0,<7",
             },
@@ -254,7 +259,7 @@ pep_508 = [
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.1",
                 "pytest-cov": "pytest-cov ~=3.1",
-                "pre-commit": "pre-commit ~=2.20",
+                "pre-commit": "pre-commit~=2.20",
                 "pylint": "pylint ~=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<7",
             },
@@ -267,7 +272,7 @@ pep_508 = [
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.0",
-                "pre-commit": "pre-commit ~=2.20",
+                "pre-commit": "pre-commit~=2.20",
                 "pylint": "pylint ~=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<7",
             },
@@ -280,7 +285,7 @@ pep_508 = [
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
                 "pytest-cov": "pytest-cov ~=3.1",
-                "pre-commit": "pre-commit ~=2.20",
+                "pre-commit": "pre-commit~=2.20",
                 "pylint": "pylint ~=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<6",
             },
@@ -311,7 +316,7 @@ def test_ignore_rules_logic(
     pyproject_file.write_text(
         data="""
 [project]
-name = "ci-cd"
+name = "test"
 requires-python = "~=3.7"
 
 dependencies = [
@@ -332,7 +337,7 @@ dev = [
     "mike >=1.1,<3",
     "pytest ~=7.1",
     "pytest-cov ~=3.0",
-    "pre-commit ~=2.20",
+    "pre-commit~=2.20",
     "pylint ~=2.13",
     "Sphinx >=4.5.0,<6",
 ]
@@ -370,7 +375,12 @@ dev = [
 
     for line in dependencies:
         for dependency, dependency_requirement in expected_result.items():
-            if f"{dependency} " in line:
+            # Assert the dependency in the updated pyproject.toml file equals the
+            # expected value.
+            # We have to use a regular expression to match the dependency name as some
+            # dependency names are sub-strings of each other (like 'pytest' is a
+            # sub-string of 'pytest-cov').
+            if re.match(rf"{re.escape(dependency)}\s*(~|>).*", line):
                 assert line == dependency_requirement
                 break
         else:
@@ -513,3 +523,52 @@ dev = [
         "Dependency 'ci-cd' is not version restricted and will be skipped."
         not in caplog.text
     )
+
+
+@pytest.mark.parametrize("verbose_flag", [True, False])
+def test_verbose(
+    verbose_flag: bool,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Check the verbose flag is respected.
+
+    Any logged messaged should be written to stdout IF the verbose flag is set.
+    Check that any expected log messages are found both in the logs and in stdout.
+
+    If the verbose flag is not set, the messages should ONLY appear in the logs.
+    """
+    from invoke import MockContext
+
+    from ci_cd.tasks import update_deps
+
+    with pytest.raises(
+        SystemExit,
+        match=(
+            r".*Error: Could not find the Python package repository's "
+            r"'pyproject.toml' file.*"
+        ),
+    ):
+        update_deps(MockContext(), root_repo_path=str(tmp_path), verbose=verbose_flag)
+
+    captured_output = capsys.readouterr()
+
+    # Expected log messages - note the strings are sub-strings of the full log messages
+    assert (
+        "Verbose logging enabled." in caplog.text
+        if verbose_flag
+        else "Verbose logging enabled." not in caplog.text
+    )
+    assert "Parsed ignore rules:" in caplog.text
+
+    # Assert the above messages are the only messages in the logs
+    assert len(caplog.messages) == 2 if verbose_flag else 1
+
+    # Go through the log messages and ensure they either are or are not in stdout
+    for log_message in caplog.messages:
+        assert (
+            log_message in captured_output.out
+            if verbose_flag
+            else log_message not in captured_output.out
+        )
