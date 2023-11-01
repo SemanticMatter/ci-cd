@@ -706,3 +706,81 @@ dev = [{optional_dependency!r}]
         formatted_msg = msg.format(bad_dependency=bad_dependency)
         assert re.search(formatted_msg, caplog.text) is not None, formatted_msg
         assert re.search(formatted_msg, captured_output.out) is not None, formatted_msg
+
+
+def test_non_parseable_pip_index_versions(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture
+) -> None:
+    """Check an error is raised if the pip index versions cannot be parsed."""
+    import re
+
+    from invoke import MockContext
+
+    from ci_cd.tasks.update_deps import update_deps
+
+    pyproject_file = tmp_path / "pyproject.toml"
+    pyproject_file.write_text(
+        data="""
+[project]
+name = "ci-cd"
+requires-python = "~=3.6"
+
+dependencies = [
+    "pytest ~=7.0",
+]
+""",
+        encoding="utf8",
+    )
+
+    context = MockContext(
+        run={
+            re.compile(r"^pip index versions.*"): "invalid output",
+        }
+    )
+
+    msg = re.compile(r"Could not parse package and version from 'pip index versions'")
+
+    with pytest.raises(
+        SystemExit,
+        match=r".*Errors occurred! See printed statements above\.$",
+    ):
+        update_deps(context, root_repo_path=str(tmp_path))
+
+    assert msg.search(caplog.text) is not None, msg
+    assert msg.search(capsys.readouterr().out) is not None, msg
+
+
+def test_no_dependency_updates_available(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """Check no changes are incurred if no dependency updates are available."""
+    import re
+
+    from invoke import MockContext
+
+    from ci_cd.tasks.update_deps import update_deps
+
+    pyproject_file = tmp_path / "pyproject.toml"
+    pyproject_file_data = """[project]
+name = "ci-cd"
+requires-python = "~=3.6"
+
+dependencies = [
+    "pytest ~=7.0",
+]
+"""
+    pyproject_file.write_text(data=pyproject_file_data, encoding="utf8")
+
+    context = MockContext(
+        run={
+            re.compile(r".*pytest.*"): "pytest (7.0.10)",
+        }
+    )
+
+    msg = re.compile(r"No dependency updates available")
+
+    update_deps(context, root_repo_path=str(tmp_path))
+
+    assert msg.search(capsys.readouterr().out) is not None, msg
+
+    assert pyproject_file.read_text(encoding="utf8") == pyproject_file_data

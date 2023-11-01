@@ -284,25 +284,16 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             error = True
             continue
 
-        pip_index_package_name: str = match.group("package")
         latest_version: str = match.group("version")
 
-        # Sanity check
-        # Ensure that the package name parsed from pyproject.toml matches the name
-        # returned from 'pip index versions'
-        if parsed_requirement.name != pip_index_package_name:
-            msg = (
-                "Package name parsed from pyproject.toml "
-                f"({parsed_requirement.name!r}) does not match the name returned from "
-                f"'pip index versions': {pip_index_package_name!r}"
-            )
-            LOGGER.error(msg)
-            if fail_fast:
-                sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
-            print(error_msg(msg), flush=True)
-            already_handled_packages.add(parsed_requirement)
-            error = True
-            continue
+        # Here used to be a sanity check to ensure that the package name parsed from
+        # pyproject.toml matches the name returned from 'pip index versions'.
+        # But I cannot think of a reason why they would not match, so it has been
+        # removed.
+        # When checking 'pip index versions' output, it seems that the package name
+        # returned is always the same as is used in the command call, e.g., if
+        # 'pip index versions reQUEsts' is called, then the output will always be
+        # 'reQUEsts (<latest version here>)'.
 
         # Check whether pyproject.toml already uses the latest version
         # This is expected if the latest version equals a specifier with any of the
