@@ -146,8 +146,8 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
         pyproject = tomlkit.parse(pyproject_path.read_bytes())
     except TOMLKitError as exc:
         sys.exit(
-            f"{Emoji.CROSS_MARK.value} Error: Could not parse 'pyproject.toml' file "
-            f"at: {pyproject_path}\nException: {exc}"
+            f"{Emoji.CROSS_MARK.value} Error: Could not parse the 'pyproject.toml' "
+            f"file at: {pyproject_path}\nException: {exc}"
         )
 
     # Retrieve the minimum required Python version

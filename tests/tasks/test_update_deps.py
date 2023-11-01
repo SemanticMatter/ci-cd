@@ -572,3 +572,137 @@ def test_verbose(
             if verbose_flag
             else log_message not in captured_output.out
         )
+
+
+def test_wrongly_formatted_ignore_entries() -> None:
+    """Check an error is raised if the ignore rules are incorrectly formatted."""
+    from invoke import MockContext
+
+    from ci_cd.tasks.update_deps import update_deps
+
+    with pytest.raises(
+        SystemExit,
+        match=r".*Error: Could not parse ignore options.*",
+    ):
+        # Should be "dependency-name", not "dependency"
+        update_deps(MockContext(), ignore=["dependency=pytest"])
+
+
+def test_non_parseable_pyproject_toml(tmp_path: Path) -> None:
+    """Check an error is raised if the pyproject.toml file cannot be parsed."""
+    from invoke import MockContext
+
+    from ci_cd.tasks.update_deps import update_deps
+
+    pyproject_file = tmp_path / "pyproject.toml"
+    pyproject_file.write_text("invalid toml file", encoding="utf8")
+
+    with pytest.raises(
+        SystemExit,
+        match=r".*Error: Could not parse the 'pyproject.toml' file",
+    ):
+        update_deps(MockContext(), root_repo_path=str(tmp_path))
+
+
+@pytest.mark.parametrize(
+    "requires_python",
+    ["", 'requires-python = "invalid"', 'requires-python = "3.7"'],
+    ids=["missing", "invalid", "missing operator"],
+)
+def test_no_requires_python_in_pyproject_toml(
+    tmp_path: Path, requires_python: str
+) -> None:
+    """Check an error is raised if the pyproject.toml file does not have a (valid)
+    requires-python key."""
+    from invoke import MockContext
+
+    from ci_cd.tasks.update_deps import update_deps
+
+    pyproject_file = tmp_path / "pyproject.toml"
+    pyproject_file.write_text(
+        data=f"""
+[project]
+name = "ci-cd"
+{requires_python}
+""",
+        encoding="utf8",
+    )
+
+    with pytest.raises(
+        SystemExit,
+        match=r".*Error: Cannot determine minimum Python version",
+    ):
+        update_deps(MockContext(), root_repo_path=str(tmp_path))
+
+
+def test_missing_project_package_name(tmp_path: Path) -> None:
+    """Check an error is raised if the pyproject.toml file does not have a (valid)
+    name key."""
+    from invoke import MockContext
+
+    from ci_cd.tasks.update_deps import update_deps
+
+    pyproject_file = tmp_path / "pyproject.toml"
+    pyproject_file.write_text(
+        data="""
+[project]
+requires-python = "~=3.7"
+""",
+        encoding="utf8",
+    )
+
+    with pytest.raises(
+        SystemExit,
+        match=r".*Error: Could not find the Python project's name.*",
+    ):
+        update_deps(MockContext(), root_repo_path=str(tmp_path))
+
+
+@pytest.mark.parametrize(
+    "dependency,optional_dependency",
+    [("(pytest)", ""), ("", "(pytest)"), ("(pytest)", "(pytest-cov)")],
+    ids=["dependency", "optional-dependency", "both"],
+)
+def test_invalid_requirement(
+    tmp_path: Path,
+    dependency: str,
+    optional_dependency: str,
+    caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """Check an error is raised if a dependency requirement is invalid."""
+    import re
+
+    from invoke import MockContext
+
+    from ci_cd.tasks.update_deps import update_deps
+
+    pyproject_file = tmp_path / "pyproject.toml"
+    pyproject_file.write_text(
+        data=f"""
+[project]
+name = "ci-cd"
+requires-python = "~=3.6"
+
+dependencies = [{dependency!r}]
+
+[project.optional-dependencies]
+dev = [{optional_dependency!r}]
+""",
+        encoding="utf8",
+    )
+
+    msg = r"Could not parse requirement '{bad_dependency}' from pyproject\.toml:"
+
+    with pytest.raises(
+        SystemExit,
+        match=r".*Errors occurred! See printed statements above\.$",
+    ):
+        update_deps(MockContext(), root_repo_path=str(tmp_path))
+
+    captured_output = capsys.readouterr()
+
+    for bad_dependency in [re.escape(_) for _ in (dependency, optional_dependency)]:
+        formatted_msg = msg.format(bad_dependency=bad_dependency)
+        assert re.search(formatted_msg, caplog.text) is not None, formatted_msg
+        assert re.search(formatted_msg, captured_output.out) is not None, formatted_msg
