@@ -381,7 +381,7 @@ dev = [
             # We have to use a regular expression to match the dependency name as some
             # dependency names are sub-strings of each other (like 'pytest' is a
             # sub-string of 'pytest-cov').
-            if re.match(re.escape(dependency) + r"}\s*(~|>).*", line):
+            if re.match(rf"{re.escape(dependency)}\s*(~|>).*", line):
                 assert line == dependency_requirement
                 break
         else:
