@@ -707,7 +707,7 @@ dev = [{repr(optional_dependency) if optional_dependency else ""}]
         # The first dependency to be checked will be the ones from `dependencies`,
         # hence we'd expect the error to be raised for that one.
         raise_msg = (
-            f"^{Emoji.CROSS_MARK.value} "
+            f"^{re.escape(Emoji.CROSS_MARK.value)} "
             f"{re.escape(error_msg(log_msg.format(bad_dependency=dependency))[:-len(Color.RESET.value)])}.*"  # pylint: disable=line-too-long
         )
     else:
@@ -802,11 +802,13 @@ dependencies = [
         # We test failing fast
         # The error message will be part of the exception, and will not be in stdout or
         # stderr. It SHOULD however be present in the logs.
-        raise_msg = f"^{Emoji.CROSS_MARK.value} {re.escape(error_msg(log_msg))}$"
+        raise_msg = (
+            f"^{re.escape(Emoji.CROSS_MARK.value)} {re.escape(error_msg(log_msg))}$"
+        )
     else:
         raise_msg = (
-            rf"^{Emoji.CROSS_MARK.value} Errors occurred! See printed statements "
-            r"above\.$"
+            rf"^{re.escape(Emoji.CROSS_MARK.value)} Errors occurred! See printed "
+            r"statements above\.$"
         )
 
     with pytest.raises(SystemExit, match=raise_msg):
