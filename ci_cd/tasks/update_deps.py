@@ -252,10 +252,12 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             ):
                 # Current (minimum) Python version does NOT satisfy the marker
                 marker_py_version = find_minimum_py_version(
-                    parsed_requirement.marker, py_version
+                    marker=parsed_requirement.marker,
+                    project_py_version=py_version,
                 )
+            else:
+                marker_py_version = get_min_max_py_version(parsed_requirement.marker)
 
-            marker_py_version = get_min_max_py_version(parsed_requirement.marker)
             LOGGER.debug("Min/max Python version from marker: %s", marker_py_version)
 
         # Check version from PyPI's online package index
