@@ -40,8 +40,8 @@ if TYPE_CHECKING:  # pragma: no cover
     from ci_cd.utils.versions import IgnoreUpdateTypes, IgnoreVersions
 
 
-LOGGER = logging.getLogger(__file__)
-LOGGER.setLevel(logging.DEBUG)
+# Get logger
+LOGGER = logging.getLogger(__name__)
 
 
 def _format_and_update_dependency(
@@ -116,7 +116,6 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
         ignore: list[str] = []  # type: ignore[no-redef]
 
     if verbose:
-        LOGGER.setLevel(logging.DEBUG)
         LOGGER.addHandler(logging.StreamHandler(sys.stdout))
         LOGGER.debug("Verbose logging enabled.")
 
@@ -196,7 +195,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             LOGGER.error(msg)
             if fail_fast:
                 sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
-            print(error_msg(msg), flush=True)
+            print(error_msg(msg), file=sys.stderr, flush=True)
             error = True
             continue
         LOGGER.debug("Parsed requirement: %r", parsed_requirement)
@@ -279,7 +278,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             LOGGER.error(msg)
             if fail_fast:
                 sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
-            print(error_msg(msg), flush=True)
+            print(error_msg(msg), file=sys.stderr, flush=True)
             already_handled_packages.add(parsed_requirement)
             error = True
             continue
@@ -390,7 +389,7 @@ def update_deps(  # pylint: disable=too-many-branches,too-many-locals,too-many-s
             LOGGER.error("%s. Exception: %s", msg, exc)
             if fail_fast:
                 sys.exit(f"{Emoji.CROSS_MARK.value} {error_msg(msg)}")
-            print(error_msg(msg), flush=True)
+            print(error_msg(msg), file=sys.stderr, flush=True)
             already_handled_packages.add(parsed_requirement)
             error = True
             continue

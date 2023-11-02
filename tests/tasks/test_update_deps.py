@@ -1,4 +1,5 @@
 """Test `ci_cd.tasks.update_deps()`."""
+# pylint: disable=too-many-locals
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -552,7 +553,7 @@ def test_verbose(
     ):
         update_deps(MockContext(), root_repo_path=str(tmp_path), verbose=verbose_flag)
 
-    captured_output = capsys.readouterr()
+    captured_output = capsys.readouterr().out
 
     # Expected log messages - note the strings are sub-strings of the full log messages
     assert (
@@ -568,9 +569,9 @@ def test_verbose(
     # Go through the log messages and ensure they either are or are not in stdout
     for log_message in caplog.messages:
         assert (
-            log_message in captured_output.out
+            log_message in captured_output
             if verbose_flag
-            else log_message not in captured_output.out
+            else log_message not in captured_output
         )
 
 
@@ -659,14 +660,20 @@ requires-python = "~=3.7"
 
 
 @pytest.mark.parametrize(
-    "dependency,optional_dependency",
-    [("(pytest)", ""), ("", "(pytest)"), ("(pytest)", "(pytest-cov)")],
-    ids=["dependency", "optional-dependency", "both"],
+    "dependency,optional_dependency,fail_fast",
+    [
+        ("(pytest)", "", False),
+        ("", "(pytest)", False),
+        ("(pytest)", "(pytest-cov)", False),
+        ("(pytest)", "(pytest-cov)", True),
+    ],
+    ids=["dependency", "optional-dependency", "both", "both, but fail_fast"],
 )
 def test_invalid_requirement(
     tmp_path: Path,
     dependency: str,
     optional_dependency: str,
+    fail_fast: bool,
     caplog: pytest.LogCaptureFixture,
     capsys: pytest.CaptureFixture,
 ) -> None:
@@ -676,6 +683,7 @@ def test_invalid_requirement(
     from invoke import MockContext
 
     from ci_cd.tasks.update_deps import update_deps
+    from ci_cd.utils.console_printing import Color, Emoji, error_msg
 
     pyproject_file = tmp_path / "pyproject.toml"
     pyproject_file.write_text(
@@ -684,32 +692,77 @@ def test_invalid_requirement(
 name = "ci-cd"
 requires-python = "~=3.6"
 
-dependencies = [{dependency!r}]
+dependencies = [{repr(dependency) if dependency else ""}]
 
 [project.optional-dependencies]
-dev = [{optional_dependency!r}]
+dev = [{repr(optional_dependency) if optional_dependency else ""}]
 """,
         encoding="utf8",
     )
 
-    msg = r"Could not parse requirement '{bad_dependency}' from pyproject\.toml:"
+    log_msg = "Could not parse requirement '{bad_dependency}' from pyproject.toml: "
 
-    with pytest.raises(
-        SystemExit,
-        match=r".*Errors occurred! See printed statements above\.$",
-    ):
-        update_deps(MockContext(), root_repo_path=str(tmp_path))
+    if fail_fast:
+        # We test failing fast
+        # The first dependency to be checked will be the ones from `dependencies`,
+        # hence we'd expect the error to be raised for that one.
+        raise_msg = (
+            rf"^{Emoji.CROSS_MARK.value} "
+            rf"{re.escape(error_msg(log_msg.format(bad_dependency=dependency))[:-len(Color.RESET.value)])}.*"  # pylint: disable=line-too-long
+        )
+    else:
+        raise_msg = r".*Errors occurred! See printed statements above\.$"
 
-    captured_output = capsys.readouterr()
+    with pytest.raises(SystemExit, match=raise_msg):
+        update_deps(MockContext(), root_repo_path=str(tmp_path), fail_fast=fail_fast)
 
-    for bad_dependency in [re.escape(_) for _ in (dependency, optional_dependency)]:
-        formatted_msg = msg.format(bad_dependency=bad_dependency)
-        assert re.search(formatted_msg, caplog.text) is not None, formatted_msg
-        assert re.search(formatted_msg, captured_output.out) is not None, formatted_msg
+    captured_stderr = capsys.readouterr().err
+
+    active_dependencies = [_ for _ in [dependency, optional_dependency] if _]
+
+    for bad_dependency in active_dependencies:
+        formatted_log_msg = log_msg.format(bad_dependency=bad_dependency)
+        formatted_terminal_msg = (
+            rf"{re.escape(error_msg(formatted_log_msg)[:-len(Color.RESET.value)])}"
+        )
+
+        formatted_log_msg = re.escape(formatted_log_msg)
+
+        if fail_fast:
+            # Here we test failing fast, so _only_ the first dependency should be
+            # checked before the error is raised.
+            if bad_dependency == dependency:
+                # The error message should not be findable in stderr (or stdout) - it is
+                # already checked in the raise statement above.
+                # It SHOULD however be present in the logs.
+                assert (
+                    re.search(formatted_log_msg, caplog.text) is not None
+                ), formatted_log_msg
+                assert (
+                    re.search(formatted_terminal_msg, captured_stderr) is None
+                ), formatted_terminal_msg
+            else:
+                assert (
+                    re.search(formatted_log_msg, caplog.text) is None
+                ), formatted_log_msg
+                assert (
+                    re.search(formatted_terminal_msg, captured_stderr) is None
+                ), formatted_terminal_msg
+        else:
+            assert (
+                re.search(formatted_log_msg, caplog.text) is not None
+            ), formatted_log_msg
+            assert (
+                re.search(formatted_terminal_msg, captured_stderr) is not None
+            ), captured_stderr
 
 
+@pytest.mark.parametrize("fail_fast", [True, False], ids=["fail_fast", "no fail_fast"])
 def test_non_parseable_pip_index_versions(
-    tmp_path: Path, caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture
+    tmp_path: Path,
+    fail_fast: bool,
+    caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture,
 ) -> None:
     """Check an error is raised if the pip index versions cannot be parsed."""
     import re
@@ -717,6 +770,7 @@ def test_non_parseable_pip_index_versions(
     from invoke import MockContext
 
     from ci_cd.tasks.update_deps import update_deps
+    from ci_cd.utils.console_printing import Emoji, error_msg
 
     pyproject_file = tmp_path / "pyproject.toml"
     pyproject_file.write_text(
@@ -738,20 +792,36 @@ dependencies = [
         }
     )
 
-    msg = re.compile(r"Could not parse package and version from 'pip index versions'")
+    log_msg = (
+        "Could not parse package and version from 'pip index versions' output for "
+        "line:\n  invalid output"
+    )
+    terminal_msg = re.compile(rf"{re.escape(error_msg(log_msg))}")
 
-    with pytest.raises(
-        SystemExit,
-        match=r".*Errors occurred! See printed statements above\.$",
-    ):
-        update_deps(context, root_repo_path=str(tmp_path))
+    if fail_fast:
+        # We test failing fast
+        # The error message will be part of the exception, and will not be in stdout or
+        # stderr. It SHOULD however be present in the logs.
+        raise_msg = rf"^{Emoji.CROSS_MARK.value} {re.escape(error_msg(log_msg))}$"
+    else:
+        raise_msg = (
+            rf"^{Emoji.CROSS_MARK.value} Errors occurred! See printed statements "
+            r"above\.$"
+        )
 
-    assert msg.search(caplog.text) is not None, msg
-    assert msg.search(capsys.readouterr().out) is not None, msg
+    with pytest.raises(SystemExit, match=raise_msg):
+        update_deps(context, root_repo_path=str(tmp_path), fail_fast=fail_fast)
+
+    assert re.search(log_msg, caplog.text) is not None, log_msg
+
+    if fail_fast:
+        assert terminal_msg.search(capsys.readouterr().err) is None, terminal_msg
+    else:
+        assert terminal_msg.search(capsys.readouterr().err) is not None, terminal_msg
 
 
 def test_no_dependency_updates_available(
-    tmp_path: Path, capsys: pytest.CaptureFixture
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, capsys: pytest.CaptureFixture
 ) -> None:
     """Check no changes are incurred if no dependency updates are available."""
     import re
@@ -780,6 +850,8 @@ dependencies = [
     msg = re.compile(r"No dependency updates available")
 
     update_deps(context, root_repo_path=str(tmp_path))
+
+    assert "'pytest' is already up-to-date." in caplog.text
 
     assert msg.search(capsys.readouterr().out) is not None, msg
 
