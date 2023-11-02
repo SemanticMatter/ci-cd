@@ -381,7 +381,7 @@ dev = [
             # We have to use a regular expression to match the dependency name as some
             # dependency names are sub-strings of each other (like 'pytest' is a
             # sub-string of 'pytest-cov').
-            if re.match(rf"{re.escape(dependency)}\s*(~|>).*", line):
+            if re.match(re.escape(dependency) + r"}\s*(~|>).*", line):
                 assert line == dependency_requirement
                 break
         else:
@@ -707,8 +707,8 @@ dev = [{repr(optional_dependency) if optional_dependency else ""}]
         # The first dependency to be checked will be the ones from `dependencies`,
         # hence we'd expect the error to be raised for that one.
         raise_msg = (
-            rf"^{Emoji.CROSS_MARK.value} "
-            rf"{re.escape(error_msg(log_msg.format(bad_dependency=dependency))[:-len(Color.RESET.value)])}.*"  # pylint: disable=line-too-long
+            f"^{Emoji.CROSS_MARK.value} "
+            f"{re.escape(error_msg(log_msg.format(bad_dependency=dependency))[:-len(Color.RESET.value)])}.*"  # pylint: disable=line-too-long
         )
     else:
         raise_msg = r".*Errors occurred! See printed statements above\.$"
@@ -722,8 +722,8 @@ dev = [{repr(optional_dependency) if optional_dependency else ""}]
 
     for bad_dependency in active_dependencies:
         formatted_log_msg = log_msg.format(bad_dependency=bad_dependency)
-        formatted_terminal_msg = (
-            rf"{re.escape(error_msg(formatted_log_msg)[:-len(Color.RESET.value)])}"
+        formatted_terminal_msg = re.escape(
+            error_msg(formatted_log_msg)[: -len(Color.RESET.value)]
         )
 
         formatted_log_msg = re.escape(formatted_log_msg)
@@ -796,13 +796,13 @@ dependencies = [
         "Could not parse package and version from 'pip index versions' output for "
         "line:\n  invalid output"
     )
-    terminal_msg = re.compile(rf"{re.escape(error_msg(log_msg))}")
+    terminal_msg = re.compile(re.escape(error_msg(log_msg)))
 
     if fail_fast:
         # We test failing fast
         # The error message will be part of the exception, and will not be in stdout or
         # stderr. It SHOULD however be present in the logs.
-        raise_msg = rf"^{Emoji.CROSS_MARK.value} {re.escape(error_msg(log_msg))}$"
+        raise_msg = f"^{Emoji.CROSS_MARK.value} {re.escape(error_msg(log_msg))}$"
     else:
         raise_msg = (
             rf"^{Emoji.CROSS_MARK.value} Errors occurred! See printed statements "
