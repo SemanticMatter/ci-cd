@@ -13,6 +13,9 @@ from invoke import task
 
 from ci_cd.utils import Emoji, SemanticVersion, update_file
 
+if TYPE_CHECKING:  # pragma: no cover
+    from typing import List
+
 # Get logger
 LOGGER = logging.getLogger(__name__)
 
@@ -63,7 +66,7 @@ def setver(  # pylint: disable=too-many-locals
         package_dir: str = package_dir  # type: ignore[no-redef]
         version: str = version  # type: ignore[no-redef]
         root_repo_path: str = root_repo_path  # type: ignore[no-redef]
-        code_base_update: list[str] = code_base_update  # type: ignore[no-redef]
+        code_base_update: List[str] = code_base_update  # type: ignore[no-redef]
         code_base_update_separator: str = code_base_update_separator  # type: ignore[no-redef]  # pylint: disable=line-too-long
         test: bool = test  # type: ignore[no-redef]
         fail_fast: bool = fail_fast  # type: ignore[no-redef]
@@ -100,7 +103,7 @@ def setver(  # pylint: disable=too-many-locals
             ),
         )
     else:
-        errors: list[str] = []
+        errors: "List[str]" = []
         for code_update in code_base_update:
             try:
                 filepath, pattern, replacement = code_update.split(
