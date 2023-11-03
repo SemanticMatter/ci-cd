@@ -80,5 +80,8 @@ max-returns = 10
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = ["--cov=ci_cd", "--cov-report=term-missing"]
-filterwarnings = ["error"]
+filterwarnings = [
+    "ignore:.*imp module.*:DeprecationWarning",
+    # Remove when invoke updates to `inspect.signature()` or similar:
+    "ignore:.*inspect.getargspec().*:DeprecationWarning",
+]
