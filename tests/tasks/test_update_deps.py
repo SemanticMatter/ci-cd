@@ -201,26 +201,30 @@ pep_508 = [
             ["dependency-name=*...update-types=version-update:semver-major"],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[test,docs]": "tomlkit[test,docs] ~=0.11.4",
+                "tomlkit": "tomlkit[test,docs] ~=0.11.4",
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
-                "pytest-cov": "pytest-cov ~=3.1",
+                "pytest-cov": "pytest-cov ~=3.1,!=3.1.0",
                 "pre-commit": "pre-commit~=2.20",
-                "pylint": "pylint ~=2.14",
+                "pylint": "pylint ~=2.13,!=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<6",
+                "test": "test[docs,testing]",
+                "urllib3": "urllib3 <2",
             },
         ),
         (
             ["dependency-name=invoke...versions=>=2"],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "tomlkit": "tomlkit[docs,test] >=0.11.4,<2",
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
-                "pytest-cov": "pytest-cov ~=3.1",
+                "pytest-cov": "pytest-cov ~=3.1,!=3.1.0",
                 "pre-commit": "pre-commit~=2.20",
-                "pylint": "pylint ~=2.14",
+                "pylint": "pylint ~=2.13,!=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<7",
+                "test": "test[docs,testing]",
+                "urllib3": "urllib3 <3",
             },
         ),
         (
@@ -230,65 +234,75 @@ pep_508 = [
             ],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "tomlkit": "tomlkit[docs,test] >=0.11.4,<2",
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
-                "pytest-cov": "pytest-cov ~=3.1",
+                "pytest-cov": "pytest-cov ~=3.1,!=3.1.0",
                 "pre-commit": "pre-commit~=2.20",
-                "pylint": "pylint ~=2.14",
+                "pylint": "pylint ~=2.13,!=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<7",
+                "test": "test[docs,testing]",
+                "urllib3": "urllib3 <3",
             },
         ),
         (
             ["dependency-name=pylint...versions=~=2.14"],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "tomlkit": "tomlkit[docs,test] >=0.11.4,<2",
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
-                "pytest-cov": "pytest-cov ~=3.1",
+                "pytest-cov": "pytest-cov ~=3.1,!=3.1.0",
                 "pre-commit": "pre-commit~=2.20",
-                "pylint": "pylint ~=2.13",
+                "pylint": "pylint ~=2.13,!=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<7",
+                "test": "test[docs,testing]",
+                "urllib3": "urllib3 <3",
             },
         ),
         (
             ["dependency-name=pytest"],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "tomlkit": "tomlkit[docs,test] >=0.11.4,<2",
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.1",
-                "pytest-cov": "pytest-cov ~=3.1",
+                "pytest-cov": "pytest-cov ~=3.1,!=3.1.0",
                 "pre-commit": "pre-commit~=2.20",
-                "pylint": "pylint ~=2.14",
+                "pylint": "pylint ~=2.13,!=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<7",
+                "test": "test[docs,testing]",
+                "urllib3": "urllib3 <3",
             },
         ),
         (
             ["dependency-name=pytest-cov...update-types=version-update:semver-minor"],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "tomlkit": "tomlkit[docs,test] >=0.11.4,<2",
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
-                "pytest-cov": "pytest-cov ~=3.0",
+                "pytest-cov": "pytest-cov ~=3.0,!=3.1.0",
                 "pre-commit": "pre-commit~=2.20",
-                "pylint": "pylint ~=2.14",
+                "pylint": "pylint ~=2.13,!=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<7",
+                "test": "test[docs,testing]",
+                "urllib3": "urllib3 <3",
             },
         ),
         (
             ["dependency-name=Sphinx...versions=>=4.5.0"],
             {
                 "invoke": "invoke ~=1.7",
-                "tomlkit[docs,test]": "tomlkit[docs,test] >=0.11.4,<2",
+                "tomlkit": "tomlkit[docs,test] >=0.11.4,<2",
                 "mike": "mike >=1.1,<3",
                 "pytest": "pytest ~=7.2",
-                "pytest-cov": "pytest-cov ~=3.1",
+                "pytest-cov": "pytest-cov ~=3.1,!=3.1.0",
                 "pre-commit": "pre-commit~=2.20",
-                "pylint": "pylint ~=2.14",
+                "pylint": "pylint ~=2.13,!=2.14",
                 "Sphinx": "Sphinx >=4.5.0,<6",
+                "test": "test[docs,testing]",
+                "urllib3": "urllib3 <3",
             },
         ),
     ],
@@ -323,6 +337,7 @@ requires-python = "~=3.7"
 dependencies = [
     "invoke ~=1.7",
     "tomlkit[test,docs] ~=0.11.4",
+    "urllib3 <2",
 ]
 
 [project.optional-dependencies]
@@ -332,15 +347,12 @@ docs = [
 ]
 testing = [
     "pytest ~=7.1",
-    "pytest-cov ~=3.0",
+    "pytest-cov ~=3.0,!=3.1.0",
 ]
 dev = [
-    "mike >=1.1,<3",
-    "pytest ~=7.1",
-    "pytest-cov ~=3.0",
     "pre-commit~=2.20",
-    "pylint ~=2.13",
-    "Sphinx >=4.5.0,<6",
+    "pylint ~=2.13,!=2.14",
+    "test[docs,testing]",
 ]
 """,
         encoding="utf8",
@@ -352,10 +364,11 @@ dev = [
             re.compile(r".*tomlkit$"): "tomlkit (1.0.0)",
             re.compile(r".*mike$"): "mike (1.1.1)",
             re.compile(r".*pytest$"): "pytest (7.2.0)",
-            re.compile(r".*pytest-cov$"): "pytest-cov (3.1.0)",
+            re.compile(r".*pytest-cov$"): "pytest-cov (3.1.1)",
             re.compile(r".*pre-commit$"): "pre-commit (2.20.0)",
             re.compile(r".*pylint$"): "pylint (2.14.0)",
             re.compile(r".*Sphinx$"): "Sphinx (6.1.3)",
+            re.compile(r".*urllib3$"): "urllib3 (2.0.3)",
         },
     )
 
@@ -381,7 +394,7 @@ dev = [
             # We have to use a regular expression to match the dependency name as some
             # dependency names are sub-strings of each other (like 'pytest' is a
             # sub-string of 'pytest-cov').
-            if re.match(rf"{re.escape(dependency)}\s*(~|>).*", line):
+            if re.match(rf"{re.escape(dependency)}\s*(~|>|\[|<).*", line):
                 assert line == dependency_requirement
                 break
         else:
@@ -858,3 +871,88 @@ dependencies = [
     assert msg.search(capsys.readouterr().out) is not None, msg
 
     assert pyproject_file.read_text(encoding="utf8") == pyproject_file_data
+
+
+@pytest.mark.parametrize(
+    "pre_commit", [True, False], ids=["pre-commit", "no pre-commit"]
+)
+def test_pre_commit(tmp_path: Path, pre_commit: bool) -> None:
+    """Check pre-commit toggle."""
+    import re
+
+    from invoke import MockContext
+
+    from ci_cd.tasks.update_deps import update_deps
+
+    git_repo = tmp_path / "sub_folder"
+    git_repo.mkdir()
+    pyproject_file_git_repo = git_repo / "pyproject.toml"
+    pyproject_file_data_git_repo = """[project]
+name = "ci-cd"
+requires-python = "~=3.8"
+
+dependencies = ["pre-commit ~=2.21"]
+"""
+    pyproject_file_git_repo.write_text(
+        data=pyproject_file_data_git_repo, encoding="utf8"
+    )
+
+    pyproject_file_tmp_path = tmp_path / "pyproject.toml"
+    pyproject_file_data_tmp_path = """[project]
+name = "ci-cd"
+requires-python = "~=3.8"
+
+dependencies = ["pytest ~=7.0"]
+"""
+    pyproject_file_tmp_path.write_text(
+        data=pyproject_file_data_tmp_path, encoding="utf8"
+    )
+
+    context = MockContext(
+        run={
+            re.compile(r"^git rev-parse --show-toplevel$"): f"{git_repo.resolve()}\n",
+            re.compile(r".*pre-commit$"): "pre-commit (3.5.0)",
+            re.compile(r".*pytest$"): "pytest (7.4.3)",
+        }
+    )
+
+    update_deps(
+        context,
+        root_repo_path="." if pre_commit else str(tmp_path),
+        pre_commit=pre_commit,
+    )
+
+    if pre_commit:
+        # The git folder pyproject.toml should be updated
+        assert (
+            pyproject_file_git_repo.read_text(encoding="utf8")
+            == """[project]
+name = "ci-cd"
+requires-python = "~=3.8"
+
+dependencies = ["pre-commit >=2.21.0,<4"]
+"""
+        )
+
+        # The tmp_path pyproject.toml should have no changes
+        assert pyproject_file_tmp_path.read_text(encoding="utf8") == (
+            pyproject_file_data_tmp_path
+        )
+
+    else:
+        # The git folder pyproject.toml should have no changes
+        assert (
+            pyproject_file_git_repo.read_text(encoding="utf8")
+            == pyproject_file_data_git_repo
+        )
+
+        # The tmp_path pyproject.toml should have have changed
+        assert (
+            pyproject_file_tmp_path.read_text(encoding="utf8")
+            == """[project]
+name = "ci-cd"
+requires-python = "~=3.8"
+
+dependencies = ["pytest ~=7.4"]
+"""
+        )
