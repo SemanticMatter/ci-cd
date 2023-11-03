@@ -493,9 +493,9 @@ def create_ignore_rules(specifier_set: SpecifierSet) -> "IgnoreRules":
     }
 
 
-def _ignore_version_rules_semver(  # pragma: no cover
+def _ignore_version_rules_semver(
     latest: list[str], version_rules: "IgnoreVersions"
-) -> bool:
+) -> bool:  # pragma: no cover
     """Determine whether to ignore package based on `versions` input.
 
     Explicitly parsing as a SemanticVersion, not expecting Python (pip)-specific
