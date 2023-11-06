@@ -2,6 +2,7 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+import logging
 import operator
 import re
 from typing import TYPE_CHECKING, no_type_check
@@ -721,14 +722,22 @@ def regenerate_requirement(
     return updated_dependency
 
 
-def update_specifier_set(
+def update_specifier_set(  # pylint: disable=too-many-statements
     latest_version: "Union[SemanticVersion, str]", current_specifier_set: SpecifierSet
 ) -> SpecifierSet:
     """Update the specifier set to include the latest version."""
+    logger = logging.getLogger(__name__)
+
     latest_version = SemanticVersion(latest_version)
     new_specifier_set = set(current_specifier_set)
     updated_specifiers = []
     split_latest_version = latest_version.split(".")
+
+    logger.debug(
+        "Received latest version: %s and current specifier set: %s",
+        latest_version,
+        current_specifier_set,
+    )
 
     if latest_version in current_specifier_set:
         # The latest version is already included in the specifier set.

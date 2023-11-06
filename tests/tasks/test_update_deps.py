@@ -1,5 +1,5 @@
 """Test `ci_cd.tasks.update_deps()`."""
-# pylint: disable=too-many-locals
+# pylint: disable=too-many-locals,too-many-lines
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -956,3 +956,72 @@ requires-python = "~=3.8"
 dependencies = ["pytest ~=7.4"]
 """
         )
+
+
+@pytest.mark.parametrize("fail_fast", [True, False], ids=["fail_fast", "no fail_fast"])
+def test_unresolvable_specifier_set(
+    tmp_path: Path,
+    fail_fast: bool,
+    caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """Ensure an error is raised if the specifier set is unresolvable.
+
+    The specifier operator '===' is not supported by the current implementation.
+    """
+    import re
+
+    from invoke import MockContext
+
+    from ci_cd.tasks.update_deps import update_deps
+    from ci_cd.utils.console_printing import Emoji, error_msg
+
+    pyproject_file_data = """[project]
+name = "ci-cd"
+requires-python = ">=3.8"
+
+dependencies = ["pytest===7.0"]
+"""
+    pyproject_file = tmp_path / "pyproject.toml"
+    pyproject_file.write_text(data=pyproject_file_data, encoding="utf8")
+
+    context = MockContext(
+        run={
+            re.compile(r".*pytest$"): "pytest (7.0.0)",
+        }
+    )
+
+    core_msg = (
+        "Could not determine how to update to the latest version using the version "
+        "range specifier set: ===7.0. Package: pytest. Latest version: 7.0.0"
+    )
+    log_msg = (
+        f"{core_msg}. Exception: Cannot resolve how to update specifier set to include "
+        "latest version."
+    )
+    terminal_msg = re.compile(re.escape(error_msg(core_msg)))
+
+    if fail_fast:
+        # We test failing fast
+        # The error message will be part of the exception, and will not be in stdout or
+        # stderr. It SHOULD however be present in the logs.
+        raise_msg = (
+            f"^{re.escape(Emoji.CROSS_MARK.value)} {re.escape(error_msg(core_msg))}$"
+        )
+    else:
+        raise_msg = (
+            rf"^{re.escape(Emoji.CROSS_MARK.value)} Errors occurred! See printed "
+            r"statements above\.$"
+        )
+
+    with pytest.raises(SystemExit, match=raise_msg):
+        update_deps(context, root_repo_path=str(tmp_path), fail_fast=fail_fast)
+
+    assert pyproject_file.read_text(encoding="utf8") == pyproject_file_data
+
+    assert re.search(log_msg, caplog.text) is not None, log_msg
+
+    if fail_fast:
+        assert terminal_msg.search(capsys.readouterr().err) is None, terminal_msg
+    else:
+        assert terminal_msg.search(capsys.readouterr().err) is not None, terminal_msg
