@@ -381,7 +381,7 @@ jobs:
       if: env.RELEASE_RUN == 'false'
       uses: docker://githubchangeloggenerator/github-changelog-generator:1.16.2
       with:
-        args: --user "${{ github.repository_owner }}" ${CHANGELOG_PROJECT} --token "${{ secrets.PAT || secrets.GITHUB_TOKEN }}" --release-branch "${{ inputs.default_repo_branch }}" --future-release "Unreleased changes" ${CHANGELOG_EXCLUDE_TAGS_REGEX} ${CHANGELOG_EXCLUDE_LABELS}
+        args: --user "${{ github.repository_owner }}" ${{ env.CHANGELOG_PROJECT }} --token "${{ secrets.PAT || secrets.GITHUB_TOKEN }}" --release-branch "${{ inputs.default_repo_branch }}" --future-release "Unreleased changes" ${{ env.CHANGELOG_EXCLUDE_TAGS_REGEX }} ${{ env.CHANGELOG_EXCLUDE_LABELS }}
 
     - name: Build (& deploy MkDocs) documentation
       if: env.RELEASE_RUN == 'false' && ( ! inputs.test )
