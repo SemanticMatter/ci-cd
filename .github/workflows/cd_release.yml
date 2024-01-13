@@ -296,7 +296,7 @@ jobs:
         fi
 
         if [ -n "${PREVIOUS_VERSION}" ]; then
-          SINCE_PREVIOUS_VERSION=--since-tag "${PREVIOUS_VERSION}"
+          SINCE_PREVIOUS_VERSION="--since-tag="${PREVIOUS_VERSION}""
         else
           SINCE_PREVIOUS_VERSION=
         fi
