@@ -1,5 +1,19 @@
 # Changelog
 
+## [v2.7.3](https://github.com/SINTEF/ci-cd/tree/v2.7.3) (2024-02-14)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.7.2...v2.7.3)
+
+**Fixed bugs:**
+
+- Use `git add -- .` instead of `git commit -a` [\#236](https://github.com/SINTEF/ci-cd/issues/236)
+
+**Merged pull requests:**
+
+- \[Auto-generated\] Update dependencies [\#241](https://github.com/SINTEF/ci-cd/pull/241) ([TEAM4-0](https://github.com/TEAM4-0))
+- Use git add -- . instead of git commit -a [\#240](https://github.com/SINTEF/ci-cd/pull/240) ([CasperWA](https://github.com/CasperWA))
+- \[Auto-generated\] Update dependencies [\#239](https://github.com/SINTEF/ci-cd/pull/239) ([TEAM4-0](https://github.com/TEAM4-0))
+
 ## [v2.7.2](https://github.com/SINTEF/ci-cd/tree/v2.7.2) (2024-01-13)
 
 [Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.7.1...v2.7.2)
