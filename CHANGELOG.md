@@ -2,17 +2,38 @@
 
 ## [Unreleased](https://github.com/SINTEF/ci-cd/tree/HEAD)
 
-[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.8.0...HEAD)
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.8.1...HEAD)
 
-# Support Trusted Publishers from PyPI
+## Support custom PyPI indices
 
-[Trusted Publishers](https://docs.pypi.org/trusted-publishers/using-a-publisher/) from [PyPI](https://pypi.org) is now supported via uploading the distribution(s) as artifacts (for more information about GitHub Actions artifacts, see [the GitHub Docs](https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts)).
+All callable workflows now have support for setting the `PIP_INDEX_URL` and `PIP_EXTRA_INDEX_URL` environment variable whenever `pip install` is being invoked.
+Note, the `PIP_EXTRA_INDEX_URL` allows for multiple URLs to be provided, given they are space-delimited.
 
-**Breaking change**: This is not a "true" breaking change - but it may cause certain workflows to fail that uses the callable workflow _CD - Release_: The parameter `publish_on_pypi` has become required, meaning one _must_ provide it in the `with` section of the calling workflow. For more information, see [the documentation page for the _CD - Release_ workflow](https://sintef.github.io/ci-cd/2.8.0/workflows/cd_release/).
+For more information on the specific workflow, see the documentation.
 
-## DX updates
+**Implemented enhancements:**
 
-Several fixes from the development tools have been implemented into the code base.
+- Support custom pip index URL\(s\) [\#276](https://github.com/SINTEF/ci-cd/issues/276)
+
+## [v2.8.1](https://github.com/SINTEF/ci-cd/tree/v2.8.1) (2024-08-21)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.8.0...v2.8.1)
+
+## Support custom PyPI indices
+
+All callable workflows now have support for setting the `PIP_INDEX_URL` and `PIP_EXTRA_INDEX_URL` environment variable whenever `pip install` is being invoked.
+Note, the `PIP_EXTRA_INDEX_URL` allows for multiple URLs to be provided, given they are space-delimited.
+
+For more information on the specific workflow, see the documentation.
+
+**Merged pull requests:**
+
+- Support adding pip index URLs [\#277](https://github.com/SINTEF/ci-cd/pull/277) ([CasperWA](https://github.com/CasperWA))
+- \[pre-commit.ci\] pre-commit autoupdate [\#275](https://github.com/SINTEF/ci-cd/pull/275) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- \[pre-commit.ci\] pre-commit autoupdate [\#274](https://github.com/SINTEF/ci-cd/pull/274) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- \[pre-commit.ci\] pre-commit autoupdate [\#273](https://github.com/SINTEF/ci-cd/pull/273) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- \[Auto-generated\] Update dependencies [\#272](https://github.com/SINTEF/ci-cd/pull/272) ([TEAM4-0](https://github.com/TEAM4-0))
+- \[pre-commit.ci\] pre-commit autoupdate [\#271](https://github.com/SINTEF/ci-cd/pull/271) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 
 ## [v2.8.0](https://github.com/SINTEF/ci-cd/tree/v2.8.0) (2024-07-29)
 
