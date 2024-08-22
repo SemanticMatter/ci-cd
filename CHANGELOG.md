@@ -2,7 +2,37 @@
 
 ## [Unreleased](https://github.com/SINTEF/ci-cd/tree/HEAD)
 
-[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.8.1...HEAD)
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.8.2...HEAD)
+
+## Support self-hosted runners
+
+The `runs-on` key can not be specified via the `runner` input, which is available for all callable workflows.
+This means one can use the callable workflows with self-hosted runners, for example.
+
+It is worth noting that the workflows are built with Linux/Unix systems in mind, hence specifying `windows-latest` may lead to issues with certain workflows. This is also true if the self-hosted runner is not Linux/Unix-based.
+
+**Implemented enhancements:**
+
+- Support self-hosted runners [\#279](https://github.com/SINTEF/ci-cd/issues/279)
+
+## [v2.8.2](https://github.com/SINTEF/ci-cd/tree/v2.8.2) (2024-08-22)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.8.1...v2.8.2)
+
+## Support self-hosted runners
+
+The `runs-on` key can not be specified via the `runner` input, which is available for all callable workflows.
+This means one can use the callable workflows with self-hosted runners, for example.
+
+It is worth noting that the workflows are built with Linux/Unix systems in mind, hence specifying `windows-latest` may lead to issues with certain workflows. This is also true if the self-hosted runner is not Linux/Unix-based.
+
+**Merged pull requests:**
+
+- Add `runner` input for all callable workflows [\#280](https://github.com/SINTEF/ci-cd/pull/280) ([CasperWA](https://github.com/CasperWA))
+
+## [v2.8.1](https://github.com/SINTEF/ci-cd/tree/v2.8.1) (2024-08-22)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.8.0...v2.8.1)
 
 ## Support custom PyPI indices
 
@@ -14,17 +44,6 @@ For more information on the specific workflow, see the documentation.
 **Implemented enhancements:**
 
 - Support custom pip index URL\(s\) [\#276](https://github.com/SINTEF/ci-cd/issues/276)
-
-## [v2.8.1](https://github.com/SINTEF/ci-cd/tree/v2.8.1) (2024-08-21)
-
-[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.8.0...v2.8.1)
-
-## Support custom PyPI indices
-
-All callable workflows now have support for setting the `PIP_INDEX_URL` and `PIP_EXTRA_INDEX_URL` environment variable whenever `pip install` is being invoked.
-Note, the `PIP_EXTRA_INDEX_URL` allows for multiple URLs to be provided, given they are space-delimited.
-
-For more information on the specific workflow, see the documentation.
 
 **Merged pull requests:**
 
