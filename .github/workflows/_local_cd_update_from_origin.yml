@@ -16,7 +16,7 @@ env:
 jobs:
   update-from-origin:
     name: Update from origin
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
