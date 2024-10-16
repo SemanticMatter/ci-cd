@@ -34,13 +34,14 @@ jobs:
       - name: Compare branches
         run: |
           git remote add upstream https://github.com/${{ env.UPSTREAM_REPO }}.git
-          git fetch upstream ${env.UPSTREAM_BRANCH}
-          git diff --name-only HEAD...upstream/${env.UPSTREAM_BRANCH} > changes.txt
+          git fetch upstream ${{ env.UPSTREAM_BRANCH }}
+          git diff --name-only HEAD...upstream/${{ env.UPSTREAM_BRANCH }} > changes.txt
 
           if [ -s changes.txt ]; then
-            # Check if the file change is only this file (no, really - *this* workflow file)
-            if [ $(wc -l < changes.txt) -eq 1 ] && [ $(grep -c ".github/workflows/_local_cd_update_from_origin.yml" changes.txt) -eq 1 ]; then
-              echo "Only this workflow file is listed as being changed, no need to update"
+            # Check if the file change is only this file (no, really - *this* workflow file) and dependabot.yml
+            if [ $(wc -l < changes.txt) -eq 2 ] && [ $(grep -c ".github/workflows/_local_cd_update_from_origin.yml" changes.txt) -eq 1 ] && [ $(grep -c ".github/dependabot.yml" changes.txt) -eq 1 ]; then
+              echo "Only this workflow file and dependabot.yml are listed as being changed, no need to update"
+              echo "(but perhaps check manually if any changes are necessary for the dependabot.yml file)"
               exit 0
             fi
 
