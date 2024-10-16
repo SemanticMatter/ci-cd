@@ -1,0 +1,52 @@
+name: CD - Keep fork up-to-date with origin
+
+on:
+  # Run on a schedule
+  schedule:
+    # Runs at 02:47 UTC every day
+    - cron: '47 2 * * *'
+  # Manually launch the workflow
+  workflow_dispatch:
+
+env:
+  UPSTREAM_REPO: "SINTEF/ci-cd"
+  UPSTREAM_BRANCH: "main"
+  LOCAL_BRANCH: "main"
+
+jobs:
+  update-from-origin:
+    name: Update from origin
+    runs-on: self-hosted
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout this fork (${{ github.repository }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.LOCAL_BRANCH }}
+          fetch-depth: 0
+
+      - name: Set up git
+        run: |
+          git config --global user.name "${{ vars.CI_CD_GIT_USER }}"
+          git config --global user.email "${{ vars.CI_CD_GIT_EMAIL }}"
+
+      - name: Compare branches
+        run: |
+          git remote add upstream https://github.com/${{ env.UPSTREAM_REPO }}.git
+          git fetch upstream ${env.UPSTREAM_BRANCH}
+          git diff --name-only HEAD...upstream/${env.UPSTREAM_BRANCH} > changes.txt
+
+          if [ -s changes.txt ]; then
+            # Check if the file change is only this file (no, really - *this* workflow file)
+            if [ $(wc -l < changes.txt) -eq 1 ] && [ $(grep -c ".github/workflows/_local_cd_update_from_origin.yml" changes.txt) -eq 1 ]; then
+              echo "Only this workflow file is listed as being changed, no need to update"
+              exit 0
+            fi
+
+            echo "Changes detected, updating the fork (this repository)"
+            git merge --ff-only upstream/${{ env.UPSTREAM_BRANCH }}
+            git push origin ${{ env.LOCAL_BRANCH }}
+          else
+            echo "No changes detected"
+          fi
