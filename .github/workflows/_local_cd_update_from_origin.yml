@@ -17,14 +17,13 @@ jobs:
   update-from-origin:
     name: Update from origin
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout this fork (${{ github.repository }})
         uses: actions/checkout@v4
         with:
           ref: ${{ env.LOCAL_BRANCH }}
           fetch-depth: 0
+          token: ${{ secrets.BOT_PAT }}
 
       - name: Set up git
         run: |
