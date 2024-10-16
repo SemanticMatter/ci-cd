@@ -46,8 +46,8 @@ jobs:
             fi
 
             echo "Changes detected, updating the fork (this repository)"
-            git merge --ff-only upstream/${{ env.UPSTREAM_BRANCH }}
-            git push origin ${{ env.LOCAL_BRANCH }}
+            git rebase upstream/${{ env.UPSTREAM_BRANCH }}
+            git push -f origin ${{ env.LOCAL_BRANCH }}
           else
             echo "No changes detected"
           fi
