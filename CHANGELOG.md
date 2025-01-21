@@ -1,5 +1,55 @@
 # Changelog
 
+## [Unreleased](https://github.com/SINTEF/ci-cd/tree/HEAD)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.9.0...HEAD)
+
+## Update Python version support
+
+Drop Python 3.9 support, while adding Python 3.14 support.
+
+### DX
+
+Several updates for developer tools and dependencies.
+
+## [v2.9.0](https://github.com/SINTEF/ci-cd/tree/v2.9.0) (2025-01-21)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.8.3...v2.9.0)
+
+## Update Python version support
+
+Drop Python 3.9 support, while adding Python 3.14 support.
+
+### DX
+
+Several updates for developer tools and dependencies.
+
+**Implemented enhancements:**
+
+- Support Python 3.14 \(pre\) [\#294](https://github.com/SINTEF/ci-cd/issues/294)
+
+**Closed issues:**
+
+- Example for using trusted puclihser uses wrong key [\#299](https://github.com/SINTEF/ci-cd/issues/299)
+
+**Merged pull requests:**
+
+- Remove support for Python 3.7 [\#315](https://github.com/SINTEF/ci-cd/pull/315) ([CasperWA](https://github.com/CasperWA))
+- \[pre-commit.ci\] pre-commit autoupdate [\#314](https://github.com/SINTEF/ci-cd/pull/314) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- \[pre-commit.ci\] pre-commit autoupdate [\#313](https://github.com/SINTEF/ci-cd/pull/313) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- \[pre-commit.ci\] pre-commit autoupdate [\#312](https://github.com/SINTEF/ci-cd/pull/312) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- \[Auto-generated\] Update dependencies [\#311](https://github.com/SINTEF/ci-cd/pull/311) ([TEAM4-0](https://github.com/TEAM4-0))
+- \[pre-commit.ci\] pre-commit autoupdate [\#309](https://github.com/SINTEF/ci-cd/pull/309) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- \[Auto-generated\] Update dependencies [\#308](https://github.com/SINTEF/ci-cd/pull/308) ([TEAM4-0](https://github.com/TEAM4-0))
+- \[pre-commit.ci\] pre-commit autoupdate [\#307](https://github.com/SINTEF/ci-cd/pull/307) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- \[pre-commit.ci\] pre-commit autoupdate [\#306](https://github.com/SINTEF/ci-cd/pull/306) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- \[pre-commit.ci\] pre-commit autoupdate [\#304](https://github.com/SINTEF/ci-cd/pull/304) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- \[pre-commit.ci\] pre-commit autoupdate [\#303](https://github.com/SINTEF/ci-cd/pull/303) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- \[pre-commit.ci\] pre-commit autoupdate [\#301](https://github.com/SINTEF/ci-cd/pull/301) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- Corrected a typo in pypi publishing example, package-dir -\> packages-dir [\#300](https://github.com/SINTEF/ci-cd/pull/300) ([francescalb](https://github.com/francescalb))
+- \[pre-commit.ci\] pre-commit autoupdate [\#298](https://github.com/SINTEF/ci-cd/pull/298) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- Add support for Python 3.14 [\#295](https://github.com/SINTEF/ci-cd/pull/295) ([CasperWA](https://github.com/CasperWA))
+
 ## [v2.8.3](https://github.com/SINTEF/ci-cd/tree/v2.8.3) (2024-10-15)
 
 [Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.8.2...v2.8.3)
