@@ -2,15 +2,45 @@
 
 ## [Unreleased](https://github.com/SINTEF/ci-cd/tree/HEAD)
 
-[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.9.1...HEAD)
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.9.2...HEAD)
 
-### Minor fix update
+## Introduce `system_dependencies` for all relevant workflows
 
-Fix minor issue and update dev tools and dependencies.
+A `system_dependencies` input has been added to all workflows that install the local Python package. This is to install Ubuntu APT package prior to installing the Python package.
 
-**Fixed bugs:**
+Where the `system_dependencies` input was already defined, it has now been elevated to a general input that will work for other jobs in the same workflow as well.
 
-- Fix bug in `setver` task [\#322](https://github.com/SINTEF/ci-cd/issues/322)
+Update documentation accordingly.
+
+## DX
+
+Update dependencies and developer tools.
+
+**Implemented enhancements:**
+
+- Support install system dependencies prior to Python package [\#327](https://github.com/SINTEF/ci-cd/issues/327)
+
+## [v2.9.2](https://github.com/SINTEF/ci-cd/tree/v2.9.2) (2025-03-07)
+
+[Full Changelog](https://github.com/SINTEF/ci-cd/compare/v2.9.1...v2.9.2)
+
+## Introduce `system_dependencies` for all relevant workflows
+
+A `system_dependencies` input has been added to all workflows that install the local Python package. This is to install Ubuntu APT package prior to installing the Python package.
+
+Where the `system_dependencies` input was already defined, it has now been elevated to a general input that will work for other jobs in the same workflow as well.
+
+Update documentation accordingly.
+
+## DX
+
+Update dependencies and developer tools.
+
+**Merged pull requests:**
+
+- Introduce the `system_dependencies` input [\#328](https://github.com/SINTEF/ci-cd/pull/328) ([CasperWA](https://github.com/CasperWA))
+- \[Auto-generated\] Update dependencies [\#326](https://github.com/SINTEF/ci-cd/pull/326) ([TEAM4-0](https://github.com/TEAM4-0))
+- \[pre-commit.ci\] pre-commit autoupdate [\#325](https://github.com/SINTEF/ci-cd/pull/325) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 
 ## [v2.9.1](https://github.com/SINTEF/ci-cd/tree/v2.9.1) (2025-02-19)
 
@@ -19,6 +49,10 @@ Fix minor issue and update dev tools and dependencies.
 ### Minor fix update
 
 Fix minor issue and update dev tools and dependencies.
+
+**Fixed bugs:**
+
+- Fix bug in `setver` task [\#322](https://github.com/SINTEF/ci-cd/issues/322)
 
 **Merged pull requests:**
 
