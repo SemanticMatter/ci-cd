@@ -358,7 +358,7 @@ jobs:
     - name: Update '${{ inputs.release_branch }}'
       run: |
         git checkout -b temp_release_branch
-        if [ $(git status --porcelain | wc -l) -ne 0 ]; then
+        if [ "$(git status --porcelain | wc -l)" -ne 0 ]; then
           echo "There are uncommitted changes in the repository. At this state, this is quite unexpected."
           exit 1
         fi
