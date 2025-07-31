@@ -9,6 +9,8 @@ jobs:
     name: Call reusable workflow
     if: github.repository_owner == 'SINTEF'
     uses: ./.github/workflows/ci_cd_updated_default_branch.yml
+    permissions:
+      contents: write
     with:
       git_username: "TEAM 4.0[bot]"
       git_email: "TEAM4.0@SINTEF.no"
