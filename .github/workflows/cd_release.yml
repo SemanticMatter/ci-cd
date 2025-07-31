@@ -117,7 +117,7 @@ on:
         type: string
         default: ""
       upload_distribution:
-        description: "This input no longer has any effect. The built source distribution will always be uploaded to the local cache."
+        description: "Whether or not to upload the built distribution to the local cache. **Note**: This is only relevant if 'python_package' is 'true', which is the default."
         required: false
         type: boolean
         default: true
@@ -175,6 +175,15 @@ on:
       PAT:
         description: "A personal access token (PAT) with rights to update the `release_branch`. This will fallback on `GITHUB_TOKEN`."
         required: false
+      CACHE_ENDPOINT:
+        description: "The endpoint for the local cache. This is used to upload the built distribution."
+        required: false
+      CACHE_ACCESS_KEY:
+        description: "The access key for the local cache. This is used to upload the built distribution."
+        required: false
+      CACHE_SECRET_KEY:
+        description: "The secret key for the local cache. This is used to upload the built distribution."
+        required: false
 
     outputs:
       cache-key:
@@ -203,10 +212,6 @@ jobs:
           exit 1
         fi
 
-        if [ "${{ inputs.upload_distribution }}" == "false" ]; then
-          ::warning title=DeprecatedInput,file=.github/workflows/cd_release.yml::The 'upload_distribution' input is no longer used. The built source distribution will always be uploaded to the local cache.
-        fi
-
         echo "cache-key=${{ github.repository }}-release-${{ github.sha }}" >> $GITHUB_OUTPUT
 
     - name: Checkout ${{ github.repository }}
@@ -214,20 +219,6 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
-
-    - name: Setup local cache
-      uses: tespkg/actions-cache@v1.9.0
-      with:
-        endpoint: ${{ secrets.CACHE_ENDPOINT }}
-        port: 9000
-        bucket: actions-cache
-        insecure: true
-        accessKey: ${{ secrets.CACHE_ACCESS_KEY }}
-        secretKey: ${{ secrets.CACHE_SECRET_KEY }}
-        region: 'us-east-1'
-        use-fallback: false
-        path: ${{ inputs.build_dir }}
-        key: ${{ github.repository }}-release-${{ github.sha }}
 
     - name: Set up Python ${{ inputs.python_version_build }}
       uses: actions/setup-python@v5
@@ -398,7 +389,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
 
     - name: Validate source distribution
-      if: inputs.python_package
+      if: inputs.upload_distribution && inputs.python_package
       run: |
         # Error if the build directory does not exist
         if [ ! -d "${{ inputs.build_dir }}" ]; then
@@ -411,6 +402,21 @@ jobs:
           echo "The distribution directory '${{ inputs.build_dir }}' is empty."
           exit 1
         fi
+
+    - name: Upload source distribution
+      if: inputs.upload_distribution && inputs.python_package
+      uses: tespkg/actions-cache/save@v1.9.0
+      with:
+        endpoint: ${{ secrets.CACHE_ENDPOINT }}
+        port: 9000
+        bucket: actions-cache
+        insecure: true
+        accessKey: ${{ secrets.CACHE_ACCESS_KEY }}
+        secretKey: ${{ secrets.CACHE_SECRET_KEY }}
+        region: 'us-east-1'
+        use-fallback: false
+        path: ${{ inputs.build_dir }}
+        key: ${{ steps.validate.outputs.cache-key }}
 
     - name: Publish package to TestPyPI
       if: inputs.test && inputs.publish_on_pypi && inputs.python_package
