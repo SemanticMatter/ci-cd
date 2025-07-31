@@ -117,7 +117,7 @@ on:
         type: string
         default: ""
       upload_distribution:
-        description: "This inputs no longer has any effect. The built source distribution will always be uploaded to the local cache."
+        description: "This input no longer has any effect. The built source distribution will always be uploaded to the local cache."
         required: false
         type: boolean
         default: true
