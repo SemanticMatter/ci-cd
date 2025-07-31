@@ -117,7 +117,7 @@ on:
         type: string
         default: ""
       upload_distribution:
-        description: "Whether or not to upload the built distribution as an artifact. **Note**: This is only relevant if 'python_package' is 'true', which is the default."
+        description: "Whether or not to upload the built distribution to the local cache. **Note**: This is only relevant if 'python_package' is 'true', which is the default."
         required: false
         type: boolean
         default: true
@@ -175,6 +175,20 @@ on:
       PAT:
         description: "A personal access token (PAT) with rights to update the `release_branch`. This will fallback on `GITHUB_TOKEN`."
         required: false
+      CACHE_ENDPOINT:
+        description: "The endpoint for the local cache. This is used to upload the built distribution."
+        required: false
+      CACHE_ACCESS_KEY:
+        description: "The access key for the local cache. This is used to upload the built distribution."
+        required: false
+      CACHE_SECRET_KEY:
+        description: "The secret key for the local cache. This is used to upload the built distribution."
+        required: false
+
+    outputs:
+      cache-key:
+        description: "The cache key used for the local cache, where the source distribution may be found."
+        value: ${{ jobs.update-and-publish.outputs.cache-key }}
 
 jobs:
   update-and-publish:
@@ -182,8 +196,15 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ${{ inputs.runner }}
 
+    permissions:
+      contents: write
+
+    outputs:
+      cache-key: ${{ steps.validate.outputs.cache-key }}
+
     steps:
     - name: Validate inputs
+      id: validate
       run: |
         if [[ ! "${{ inputs.python_version_build }}" =~ ^3\.([8-9]|1[0-4])(\..*)?$ ]]; then
           echo "Python version '${{ inputs.python_version_build }}' is not supported."
@@ -191,10 +212,13 @@ jobs:
           exit 1
         fi
 
+        echo "cache-key=${{ github.repository }}-release-${{ github.sha }}" >> $GITHUB_OUTPUT
+
     - name: Checkout ${{ github.repository }}
       uses: actions/checkout@v6
       with:
         fetch-depth: 0
+        token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
 
     - name: Set up Python ${{ inputs.python_version_build }}
       uses: actions/setup-python@v6
@@ -323,15 +347,17 @@ jobs:
         ${{ inputs.build_cmd }}
 
     - name: Update '${{ inputs.release_branch }}'
-      uses: CasperWA/push-protected@v2
-      with:
-        token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
-        branch: ${{ inputs.release_branch }}
-        pre_sleep: 15
-        force: true
-        tags: true
-        unprotect_reviews: true
-        debug: ${{ inputs.test }}
+      run: |
+        git checkout -b temp_release_branch
+        if [ "$(git status --porcelain | wc -l)" -ne 0 ]; then
+          echo "There are uncommitted changes in the repository. At this state, this is quite unexpected."
+          exit 1
+        fi
+        git checkout "${{ inputs.release_branch }}"
+        git merge --ff-only temp_release_branch
+        git push --force
+        git push --tags --force
+        git branch -D temp_release_branch
 
     - name: Get tagged versions
       id: tagged_versions
@@ -362,14 +388,35 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
 
+    - name: Validate source distribution
+      if: inputs.upload_distribution && inputs.python_package
+      run: |
+        # Error if the build directory does not exist
+        if [ ! -d "${{ inputs.build_dir }}" ]; then
+          echo "The distribution directory '${{ inputs.build_dir }}' does not exist."
+          exit 1
+        fi
+
+        # Error if the build directory is empty
+        if [ -z "$(ls -A "${{ inputs.build_dir }}")" ]; then
+          echo "The distribution directory '${{ inputs.build_dir }}' is empty."
+          exit 1
+        fi
+
     - name: Upload source distribution
       if: inputs.upload_distribution && inputs.python_package
-      uses: actions/upload-artifact@v6
+      uses: tespkg/actions-cache/save@v1.9.0
       with:
-        name: dist
+        endpoint: ${{ secrets.CACHE_ENDPOINT }}
+        port: 9000
+        bucket: actions-cache
+        insecure: true
+        accessKey: ${{ secrets.CACHE_ACCESS_KEY }}
+        secretKey: ${{ secrets.CACHE_SECRET_KEY }}
+        region: 'us-east-1'
+        use-fallback: false
         path: ${{ inputs.build_dir }}
-        if-no-files-found: error
-        overwrite: true
+        key: ${{ steps.validate.outputs.cache-key }}
 
     - name: Publish package to TestPyPI
       if: inputs.test && inputs.publish_on_pypi && inputs.python_package
