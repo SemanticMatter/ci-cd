@@ -26,6 +26,38 @@ done
 
 If none of these exist, the guard will exit with an error. In that case, ask the user for the correct path before proceeding.
 
+## Issues
+
+Before starting any bug fix or feature change, open a GitHub issue that describes the problem or feature. A good issue includes:
+
+- A clear statement of the problem or goal.
+- Context: where the issue was observed or is likely to occur, with concrete references (file paths, line numbers, workflow run URLs, PR/commit links) and an explanation of why each is relevant.
+- A minimal reproduction or example, if relevant (error output, a failing command, a short code snippet).
+- A considerations section sketching one or more possible approaches and their trade-offs.
+
+Proceed with branching immediately after creating the issue unless the human contributor asks you to wait for feedback first.
+
+```bash
+gh issue create --title "<title>" --assignee @me --body "$(cat <<'EOF'
+## Problem / Goal
+
+<description>
+
+## Context
+
+<references with explanation>
+
+## Reproduction
+
+<steps, command output, or code snippet — omit if not applicable>
+
+## Considerations
+
+<approaches and trade-offs>
+EOF
+)"
+```
+
 ## Branching
 
 Always create a new branch from an up-to-date `main` before making changes. Never commit directly to `main`.
@@ -67,8 +99,12 @@ All tests must pass and no new warnings should be introduced — the suite is co
 
 Open pull requests against `main` on GitHub (`SINTEF/ci-cd`) using the `gh` CLI:
 
+If the PR addresses an issue, include `Fixes #<number>` at the top of the description so GitHub closes the issue automatically on merge. If there is no associated issue, delete that line.
+
 ```bash
 gh pr create --title "<title>" --base main --reviewer "@copilot" --body "$(cat <<'EOF'
+Fixes #<number>.  <!-- delete this line if there is no associated issue -->
+
 <description>
 
 ## Squash commit message
@@ -265,6 +301,38 @@ gh run watch <run-id>
 ```
 
 The workflow updates the changelog, bumps the package version, and commits back to `main`. All jobs must finish with a green tick before the release is considered done.
+
+### Handling a failed release
+
+If the release workflow fails after the release has been published:
+
+1. **Delete the release and the associated tag** to allow re-running:
+
+   ```bash
+   gh release delete v<version> --yes
+   git push origin :refs/tags/v<version>
+   git tag -d v<version>
+   ```
+
+2. **Fix the underlying issue** following the normal development process (issue → branch → PR → merge). Wait until the fix is merged and all CI workflows against `main` pass before continuing.
+
+3. **Update the release summary issue** if the fix introduced changes that should be reflected in the summary (e.g. new PRs merged as part of the fix). Reopen the issue, update the body preserving any existing sections, and close it again. `$ISSUE_URL` refers to the release summary issue created in step 3 of the normal release process — if it is no longer in scope, redefine `$ISSUE_URL`:
+
+   ```bash
+   ISSUE_URL=$(gh issue list --label release-summary --milestone "v<version>" --state closed --limit 1 --json url --jq '.[0].url')
+   ```
+
+   Then reopen, write the updated body to a temp file (preserving existing sections), and close:
+
+   ```bash
+   gh issue reopen "$ISSUE_URL"
+   gh issue view "$ISSUE_URL" --json body --jq .body > /tmp/release_summary.md
+   # edit /tmp/release_summary.md to add or update sections
+   gh issue edit "$ISSUE_URL" --body-file /tmp/release_summary.md
+   gh issue close "$ISSUE_URL"
+   ```
+
+4. **Re-publish the release** starting from the "Publish the release" step — the milestone and release summary issue do not need to be recreated.
 
 ## Codebase References
 
