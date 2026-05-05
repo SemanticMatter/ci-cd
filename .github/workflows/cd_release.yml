@@ -405,7 +405,7 @@ jobs:
 
     - name: Upload source distribution
       if: inputs.upload_distribution && inputs.python_package
-      uses: tespkg/actions-cache/save@v1.9.0
+      uses: tespkg/actions-cache/save@v1.10.0
       with:
         endpoint: ${{ secrets.CACHE_ENDPOINT }}
         port: 9000
