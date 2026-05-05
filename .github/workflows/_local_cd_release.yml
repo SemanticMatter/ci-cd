@@ -16,8 +16,6 @@ jobs:
       checks: read
     if: github.repository == 'SINTEF/ci-cd' && startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/cd_release.yml
-    permissions:
-      contents: write
     with:
       # General
       git_username: "TEAM 4.0[bot]"
