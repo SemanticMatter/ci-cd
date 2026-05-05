@@ -3,8 +3,9 @@ updates:
 - package-ecosystem: github-actions
   directory: "/"
   schedule:
+    # Should just run after the CD - Keep fork up-to-date with origin workflow.
     interval: daily
-    time: "05:24"
+    time: "05:24"  # UTC time, which is 07:24 in Norway (CET/CEST)
   target-branch: main
   labels:
     - CI/CD
