@@ -215,7 +215,7 @@ jobs:
         echo "cache-key=${{ github.repository }}-release-${{ github.sha }}" >> $GITHUB_OUTPUT
 
     - name: Checkout ${{ github.repository }}
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
         token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
@@ -405,7 +405,7 @@ jobs:
 
     - name: Upload source distribution
       if: inputs.upload_distribution && inputs.python_package
-      uses: tespkg/actions-cache/save@v1.10.0
+      uses: tespkg/actions-cache/save@v1.10.2
       with:
         endpoint: ${{ secrets.CACHE_ENDPOINT }}
         port: 9000
@@ -455,7 +455,7 @@ jobs:
         fi
 
     - name: Checkout ${{ github.repository }}
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
         ref: ${{ inputs.release_branch }}
